@@ -1,10 +1,8 @@
 {
-  "name": "ai-quiz-generator",
-  "version": "1.0.0",
-  "description": "AI-powered quiz generator with Gemini API",
-  "main": "index.html",
-  "type": "module",
-  "engines": {
-    "node": ">=18"
-  }
-}
+     "name": "ai-quiz-generator",
+     "version": "1.0.0",
+     "description": "AI-powered quiz generator with Gemini API",
+     "engines": {
+       "node": "18.x"
+     }
+   }
