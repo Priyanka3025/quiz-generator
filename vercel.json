@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/generate-quiz.js": {
+      "maxDuration": 60
+    }
+  }
+}
