@@ -27,7 +27,7 @@ module.exports = async function handler(req, res) {
     }
     parts.push({ text: prompt });
 
-    const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`;
 
     const response = await fetch(GEMINI_ENDPOINT, {
       method: 'POST',
