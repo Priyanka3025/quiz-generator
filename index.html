@@ -291,6 +291,101 @@
             border: 1px solid var(--border);
         }
 
+        .field-hint {
+            font-weight: 400;
+            color: var(--ink-muted);
+            font-size: 12px;
+        }
+
+        /* ==================== PRESETS ==================== */
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .preset-card {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 14px 16px;
+            background: var(--bg-paper);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-align: left;
+            font-family: var(--font);
+            width: 100%;
+        }
+
+        .preset-card:hover {
+            border-color: var(--ink);
+            background: var(--bg-subtle);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .preset-card.active {
+            border-color: var(--ink);
+            background: var(--bg-subtle);
+            box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.06);
+        }
+
+        .preset-card.active .preset-icon {
+            background: var(--ink);
+            color: var(--bg-paper);
+        }
+
+        .preset-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--bg-subtle);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.15s ease;
+            color: var(--ink);
+        }
+
+        .preset-icon svg {
+            width: 16px;
+            height: 16px;
+            stroke: currentColor;
+            stroke-width: 1.5;
+            fill: none;
+        }
+
+        .preset-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
+        }
+
+        .preset-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--ink);
+            letter-spacing: -0.005em;
+        }
+
+        .preset-desc {
+            font-size: 12px;
+            color: var(--ink-muted);
+            line-height: 1.4;
+        }
+
+        @media (max-width: 900px) {
+            .preset-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 1100px) and (min-width: 901px) {
+            .preset-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
         .section-subtitle {
             font-size: 14px;
             color: var(--ink-muted);
@@ -1099,6 +1194,28 @@
                         <input type="text" class="field-input" id="chapterCustom" placeholder="Enter chapter name (e.g., Photosynthesis)" style="display: none;">
                     </div>
                 </div>
+
+                <div class="field-group" style="margin-top: 20px;">
+                    <div class="field">
+                        <label class="field-label">Language</label>
+                        <select class="field-select" id="languageSelect" style="max-width: 400px;">
+                            <option value="English" selected>English</option>
+                            <option value="Hindi">हिन्दी (Hindi)</option>
+                            <option value="Marathi">मराठी (Marathi)</option>
+                            <option value="Tamil">தமிழ் (Tamil)</option>
+                            <option value="Telugu">తెలుగు (Telugu)</option>
+                            <option value="Bengali">বাংলা (Bengali)</option>
+                            <option value="Gujarati">ગુજરાતી (Gujarati)</option>
+                            <option value="Kannada">ಕನ್ನಡ (Kannada)</option>
+                            <option value="Malayalam">മലയാളം (Malayalam)</option>
+                            <option value="Punjabi">ਪੰਜਾਬੀ (Punjabi)</option>
+                            <option value="Urdu">اردو (Urdu)</option>
+                            <option value="Spanish">Español (Spanish)</option>
+                            <option value="French">Français (French)</option>
+                            <option value="Arabic">العربية (Arabic)</option>
+                        </select>
+                    </div>
+                </div>
             </div>
 
             <div class="section">
@@ -1133,6 +1250,68 @@
                 <div class="section-header">
                     <h2 class="section-title">Quiz parameters</h2>
                     <p class="section-subtitle">Configure the composition, difficulty, and cognitive levels.</p>
+                </div>
+
+                <div class="field-group" style="margin-bottom: 28px;">
+                    <div class="field">
+                        <label class="field-label">Quick presets <span class="field-hint">— click to auto-configure</span></label>
+                        <div class="preset-grid">
+                            <button type="button" class="preset-card" data-preset="quick-test">
+                                <div class="preset-icon">
+                                    <svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                                </div>
+                                <div class="preset-info">
+                                    <div class="preset-title">Quick test</div>
+                                    <div class="preset-desc">10 MCQ · Easy–Medium · Recall</div>
+                                </div>
+                            </button>
+                            <button type="button" class="preset-card" data-preset="board-prep">
+                                <div class="preset-icon">
+                                    <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                                </div>
+                                <div class="preset-info">
+                                    <div class="preset-title">Board exam prep</div>
+                                    <div class="preset-desc">15 mixed · All difficulties · Full Bloom's</div>
+                                </div>
+                            </button>
+                            <button type="button" class="preset-card" data-preset="revision">
+                                <div class="preset-icon">
+                                    <svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+                                </div>
+                                <div class="preset-info">
+                                    <div class="preset-title">Chapter revision</div>
+                                    <div class="preset-desc">10 mixed · Easy–Medium · Understand–Apply</div>
+                                </div>
+                            </button>
+                            <button type="button" class="preset-card" data-preset="deep-thinking">
+                                <div class="preset-icon">
+                                    <svg viewBox="0 0 24 24"><path d="M9.663 17h4.673M12 3v1M6.7 6.7l-.7-.7M18 6.7l.7-.7M3 12H2M21 12h1M12 22a9 9 0 01-5-16c0 0 4-1 5 0s5-1 5 0c2.33 1.7 4 4.39 4 7.5a9 9 0 01-9 9z"/></svg>
+                                </div>
+                                <div class="preset-info">
+                                    <div class="preset-title">Critical thinking</div>
+                                    <div class="preset-desc">8 subjective · Medium–Hard · Analyze–Create</div>
+                                </div>
+                            </button>
+                            <button type="button" class="preset-card" data-preset="concept-check">
+                                <div class="preset-icon">
+                                    <svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z"/></svg>
+                                </div>
+                                <div class="preset-info">
+                                    <div class="preset-title">Concept check</div>
+                                    <div class="preset-desc">5 True/False · Easy · Quick recall</div>
+                                </div>
+                            </button>
+                            <button type="button" class="preset-card" data-preset="custom">
+                                <div class="preset-icon">
+                                    <svg viewBox="0 0 24 24"><path d="M3 3h18v18H3z M9 9h6v6H9z"/></svg>
+                                </div>
+                                <div class="preset-info">
+                                    <div class="preset-title">Custom</div>
+                                    <div class="preset-desc">Configure manually below</div>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="field-group">
@@ -1372,6 +1551,78 @@
         updateSubjects();
 
         const numInput = document.getElementById('numQuestions');
+
+        // ============================================================
+        // PRESETS: Quick configurations
+        // ============================================================
+        const PRESETS = {
+            'quick-test': {
+                numQuestions: 10,
+                types: ['typeMCQ'],
+                difficulties: ['diffEasy', 'diffMedium'],
+                blooms: ['bloomRemember', 'bloomUnderstand']
+            },
+            'board-prep': {
+                numQuestions: 15,
+                types: ['typeMCQ', 'typeSCQ', 'typeTrueFalse', 'typeSubjective'],
+                difficulties: ['diffEasy', 'diffMedium', 'diffHard'],
+                blooms: ['bloomRemember', 'bloomUnderstand', 'bloomApply', 'bloomAnalyze', 'bloomEvaluate', 'bloomCreate']
+            },
+            'revision': {
+                numQuestions: 10,
+                types: ['typeMCQ', 'typeTrueFalse', 'typeSubjective'],
+                difficulties: ['diffEasy', 'diffMedium'],
+                blooms: ['bloomUnderstand', 'bloomApply']
+            },
+            'deep-thinking': {
+                numQuestions: 8,
+                types: ['typeSubjective'],
+                difficulties: ['diffMedium', 'diffHard'],
+                blooms: ['bloomAnalyze', 'bloomEvaluate', 'bloomCreate']
+            },
+            'concept-check': {
+                numQuestions: 5,
+                types: ['typeTrueFalse'],
+                difficulties: ['diffEasy'],
+                blooms: ['bloomRemember', 'bloomUnderstand']
+            },
+            'custom': null  // Does nothing, user configures manually
+        };
+
+        const allTypeIds = ['typeMCQ', 'typeSCQ', 'typeTrueFalse', 'typeSubjective'];
+        const allDifficultyIds = ['diffEasy', 'diffMedium', 'diffHard'];
+        const allBloomIds = ['bloomRemember', 'bloomUnderstand', 'bloomApply', 'bloomAnalyze', 'bloomEvaluate', 'bloomCreate'];
+
+        function applyPreset(presetKey) {
+            const preset = PRESETS[presetKey];
+            if (!preset) return;  // Custom does nothing
+
+            // Update number of questions
+            numInput.value = preset.numQuestions;
+
+            // Uncheck all, then check only preset ones
+            allTypeIds.forEach(id => {
+                document.getElementById(id).checked = preset.types.includes(id);
+            });
+            allDifficultyIds.forEach(id => {
+                document.getElementById(id).checked = preset.difficulties.includes(id);
+            });
+            allBloomIds.forEach(id => {
+                document.getElementById(id).checked = preset.blooms.includes(id);
+            });
+        }
+
+        document.querySelectorAll('.preset-card').forEach(card => {
+            card.addEventListener('click', () => {
+                // Remove active state from all
+                document.querySelectorAll('.preset-card').forEach(c => c.classList.remove('active'));
+                // Add active to clicked
+                card.classList.add('active');
+                // Apply the preset
+                applyPreset(card.dataset.preset);
+            });
+        });
+
         document.getElementById('numMinus').addEventListener('click', () => {
             const val = parseInt(numInput.value) || 10;
             if (val > 1) numInput.value = val - 1;
@@ -1442,7 +1693,8 @@
                 // Build textContent from chapter info (always)
                 const board = document.getElementById('boardSelect').value;
                 const classLevel = document.getElementById('classSelect').value;
-                const textContent = `Generate quiz questions for:\nBoard: ${board}\nClass: ${classLevel}\nSubject: ${subject}\nChapter: ${chapterName}`;
+                const language = document.getElementById('languageSelect').value;
+                const textContent = `Generate quiz questions for:\nBoard: ${board}\nClass: ${classLevel}\nSubject: ${subject}\nChapter: ${chapterName}\nLanguage: ${language}`;
 
                 const response = await fetch(API_ENDPOINT, {
                     method: 'POST',
@@ -1452,7 +1704,8 @@
                         numQuestions: numInput.value,
                         questionTypes, difficulties, bloomLevels,
                         board, classLevel,
-                        subject, chapter: chapterName
+                        subject, chapter: chapterName,
+                        language
                     })
                 });
 
