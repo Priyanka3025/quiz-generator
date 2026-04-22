@@ -947,6 +947,26 @@
             letter-spacing: -0.01em;
         }
 
+        .question-text sup,
+        .option sup,
+        .answer-text sup,
+        .answer-explanation sup {
+            font-size: 0.75em;
+            vertical-align: super;
+            line-height: 0;
+            font-weight: 600;
+        }
+
+        .question-text sub,
+        .option sub,
+        .answer-text sub,
+        .answer-explanation sub {
+            font-size: 0.75em;
+            vertical-align: sub;
+            line-height: 0;
+            font-weight: 600;
+        }
+
         .options {
             display: flex;
             flex-direction: column;
@@ -1787,14 +1807,14 @@
                     optionsHTML = '<div class="options">';
                     q.options.forEach(opt => {
                         const isCorrect = opt === q.correctAnswer;
-                        optionsHTML += `<div class="option ${isCorrect ? 'correct' : ''}">${escapeHTML(opt)}</div>`;
+                        optionsHTML += `<div class="option ${isCorrect ? 'correct' : ''}">${formatMath(opt)}</div>`;
                     });
                     optionsHTML += '</div>';
                 }
 
                 const answerHTML = q.type === 'Subjective'
-                    ? `<div class="answer-section"><span class="answer-label">Model answer</span><div class="answer-text">${escapeHTML(q.modelAnswer || q.correctAnswer || '')}</div></div>`
-                    : `<div class="answer-section"><span class="answer-label">Correct answer</span><div class="answer-text">${escapeHTML(q.correctAnswer || '')}</div>${q.explanation ? `<div class="answer-explanation">${escapeHTML(q.explanation)}</div>` : ''}</div>`;
+                    ? `<div class="answer-section"><span class="answer-label">Model answer</span><div class="answer-text">${formatMath(q.modelAnswer || q.correctAnswer || '')}</div></div>`
+                    : `<div class="answer-section"><span class="answer-label">Correct answer</span><div class="answer-text">${formatMath(q.correctAnswer || '')}</div>${q.explanation ? `<div class="answer-explanation">${formatMath(q.explanation)}</div>` : ''}</div>`;
 
                 card.innerHTML = `
                     <div class="question-top">
@@ -1805,7 +1825,7 @@
                             <span class="tag tag-bloom">${escapeHTML(q.bloomLevel)}</span>
                         </div>
                     </div>
-                    <div class="question-text">${escapeHTML(q.question)}</div>
+                    <div class="question-text">${formatMath(q.question)}</div>
                     ${optionsHTML}
                     ${answerHTML}
                 `;
@@ -1816,6 +1836,51 @@
         function escapeHTML(str) {
             if (!str) return '';
             return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        // Format math notation: x^2 → x², H_2O → H₂O, etc.
+        // This runs AFTER escapeHTML, so we inject <sup>/<sub> tags safely
+        function formatMath(str) {
+            if (!str) return '';
+            
+            let result = escapeHTML(str);
+            
+            // Pattern 1: Handle grouped superscripts like x^{10} or x^(10)
+            result = result.replace(/([a-zA-Z0-9\)])\^\{([^}]+)\}/g, '$1<sup>$2</sup>');
+            result = result.replace(/([a-zA-Z0-9\)])\^\(([^)]+)\)/g, '$1<sup>$2</sup>');
+            
+            // Pattern 2: Handle single-char superscripts: x^2, y^n, z^a
+            result = result.replace(/([a-zA-Z0-9\)])\^([a-zA-Z0-9\-+])/g, '$1<sup>$2</sup>');
+            
+            // Pattern 3: Handle grouped subscripts: H_{2}O or x_{i+1}
+            result = result.replace(/([a-zA-Z0-9\)])_\{([^}]+)\}/g, '$1<sub>$2</sub>');
+            result = result.replace(/([a-zA-Z0-9\)])_\(([^)]+)\)/g, '$1<sub>$2</sub>');
+            
+            // Pattern 4: Single-char subscripts: H_2, x_1, a_n
+            result = result.replace(/([a-zA-Z0-9\)])_([a-zA-Z0-9])/g, '$1<sub>$2</sub>');
+            
+            // Pattern 5: Common math symbols
+            result = result.replace(/\\times/g, '×');
+            result = result.replace(/\\div/g, '÷');
+            result = result.replace(/\\pm/g, '±');
+            result = result.replace(/\\sqrt\{([^}]+)\}/g, '√($1)');
+            result = result.replace(/\\sqrt\s+([a-zA-Z0-9]+)/g, '√$1');
+            result = result.replace(/\\pi/g, 'π');
+            result = result.replace(/\\theta/g, 'θ');
+            result = result.replace(/\\alpha/g, 'α');
+            result = result.replace(/\\beta/g, 'β');
+            result = result.replace(/\\gamma/g, 'γ');
+            result = result.replace(/\\delta/g, 'δ');
+            result = result.replace(/\\Delta/g, 'Δ');
+            result = result.replace(/\\infty/g, '∞');
+            result = result.replace(/\\leq/g, '≤');
+            result = result.replace(/\\geq/g, '≥');
+            result = result.replace(/\\neq/g, '≠');
+            result = result.replace(/\\approx/g, '≈');
+            result = result.replace(/\\degree/g, '°');
+            result = result.replace(/\*/g, '·'); // multiplication asterisk to dot
+            
+            return result;
         }
 
         function quizToTableFormat(quiz) {
