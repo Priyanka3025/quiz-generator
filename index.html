@@ -3,198 +3,1231 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Quiz Generator</title>
+    <title>QuizGen — AI Quiz Generator for Classrooms</title>
+    <meta name="description" content="Generate intelligent quizzes from PDFs or topics. Aligned with Bloom's Taxonomy.">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,0..100;1,9..144,300..900,0..100&family=Inter+Tight:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.8.2/docx.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
-        .container { max-width: 1200px; margin: 0 auto; background: white; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; }
-        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
-        .header h1 { font-size: 2.5em; margin-bottom: 10px; }
-        .header p { opacity: 0.9; font-size: 1.1em; }
-        .content { padding: 40px; }
-        .section { margin-bottom: 30px; padding: 25px; background: #f8f9fa; border-radius: 12px; border-left: 4px solid #667eea; }
-        .section h2 { color: #333; margin-bottom: 20px; font-size: 1.4em; display: flex; align-items: center; gap: 10px; }
-        .section-icon { font-size: 1.5em; }
-        .form-group { margin-bottom: 20px; }
-        label { display: block; margin-bottom: 8px; color: #555; font-weight: 600; }
-        input[type="text"], input[type="number"], input[type="file"], select, textarea { width: 100%; padding: 12px 15px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 1em; transition: all 0.3s; }
-        input:focus, select:focus, textarea:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
-        .checkbox-group { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-top: 10px; }
-        .checkbox-item { display: flex; align-items: center; padding: 10px; background: white; border-radius: 6px; cursor: pointer; transition: all 0.2s; }
-        .checkbox-item:hover { background: #f0f0f0; }
-        .checkbox-item input[type="checkbox"] { margin-right: 10px; width: 18px; height: 18px; cursor: pointer; }
-        .radio-group { display: flex; gap: 15px; flex-wrap: wrap; }
-        .radio-item { display: flex; align-items: center; padding: 10px 15px; background: white; border-radius: 6px; cursor: pointer; border: 2px solid #e0e0e0; transition: all 0.2s; }
-        .radio-item:hover { border-color: #667eea; }
-        .radio-item input[type="radio"] { margin-right: 8px; cursor: pointer; }
-        .generate-btn { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 18px 50px; font-size: 1.2em; border-radius: 50px; cursor: pointer; transition: all 0.3s; box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4); width: 100%; margin-top: 20px; }
-        .generate-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6); }
-        .generate-btn:disabled { background: #ccc; cursor: not-allowed; box-shadow: none; }
-        .loading { text-align: center; padding: 40px; display: none; }
-        .loading.active { display: block; }
-        .spinner { border: 5px solid #f3f3f3; border-top: 5px solid #667eea; border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .quiz-display { display: none; margin-top: 30px; }
-        .quiz-display.active { display: block; }
-        .question-card { background: white; border-radius: 12px; padding: 25px; margin-bottom: 20px; border-left: 4px solid #667eea; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .question-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
-        .question-number { font-weight: 700; color: #667eea; font-size: 1.1em; }
-        .question-meta { display: flex; gap: 10px; flex-wrap: wrap; }
-        .badge { padding: 4px 12px; border-radius: 20px; font-size: 0.85em; font-weight: 600; }
-        .badge-type { background: #e3f2fd; color: #1976d2; }
-        .badge-difficulty { background: #fff3e0; color: #f57c00; }
-        .badge-bloom { background: #f3e5f5; color: #7b1fa2; }
-        .question-text { font-size: 1.1em; color: #333; margin-bottom: 15px; line-height: 1.6; }
-        .options { margin-top: 15px; }
-        .option { padding: 12px; background: #f8f9fa; border-radius: 6px; margin-bottom: 8px; border: 2px solid transparent; }
-        .option.correct { background: #e8f5e9; border-color: #4caf50; }
-        .answer-section { margin-top: 15px; padding: 15px; background: #e8f5e9; border-radius: 8px; border-left: 4px solid #4caf50; }
-        .answer-label { font-weight: 700; color: #2e7d32; margin-bottom: 5px; }
-        .file-upload-area { border: 2px dashed #667eea; border-radius: 8px; padding: 30px; text-align: center; background: #f8f9ff; cursor: pointer; transition: all 0.3s; }
-        .file-upload-area:hover { background: #f0f2ff; border-color: #764ba2; }
-        .file-upload-area.drag-over { background: #e8ebff; border-color: #764ba2; }
-        .upload-icon { font-size: 3em; color: #667eea; margin-bottom: 10px; }
-        .file-name { margin-top: 10px; color: #4caf50; font-weight: 600; }
-        .export-buttons { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-top: 20px; }
-        .export-btn { padding: 14px 20px; border: none; border-radius: 8px; font-size: 0.95em; cursor: pointer; transition: all 0.3s; font-weight: 600; color: white; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        .export-csv { background: #10b981; }
-        .export-excel { background: #217346; }
-        .export-json { background: #2196f3; }
-        .export-word { background: #2b579a; }
-        .export-print { background: #6b7280; }
-        .export-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); opacity: 0.95; }
-        .export-info { background: #e3f2fd; border-left: 4px solid #1976d2; padding: 12px 15px; border-radius: 6px; margin-top: 15px; font-size: 0.9em; color: #0d47a1; }
-        .error-message { background: #ffebee; color: #c62828; padding: 15px; border-radius: 8px; border-left: 4px solid #f44336; margin-top: 20px; display: none; }
-        .error-message.active { display: block; }
-        @media (max-width: 768px) {
-            .content { padding: 20px; }
-            .header h1 { font-size: 1.8em; }
-            .checkbox-group { grid-template-columns: 1fr; }
-            .radio-group { flex-direction: column; }
-            .export-buttons { grid-template-columns: 1fr 1fr; }
+        :root {
+            --bg: #FAFAFB;
+            --bg-paper: #FFFFFF;
+            --bg-tint: #F3F1FA;
+            --ink: #0A0A1F;
+            --ink-soft: #2A2B47;
+            --ink-muted: #6B6D85;
+            --ink-light: #9698B2;
+            --electric: #4F46E5;
+            --electric-hover: #4338CA;
+            --electric-light: #EEF2FF;
+            --violet: #7C3AED;
+            --violet-light: #F3E8FF;
+            --accent-glow: #A78BFA;
+            --cyan: #06B6D4;
+            --line: #E4E4ED;
+            --line-soft: #F0F0F6;
+            --success: #10B981;
+            --error: #DC2626;
+            --error-bg: #FEF2F2;
+            --amber: #F59E0B;
+            --font-display: 'Fraunces', Georgia, serif;
+            --font-body: 'Inter Tight', -apple-system, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+            --shadow-sm: 0 1px 2px rgba(10, 10, 31, 0.04), 0 1px 3px rgba(10, 10, 31, 0.06);
+            --shadow-md: 0 4px 6px rgba(10, 10, 31, 0.04), 0 10px 15px rgba(79, 70, 229, 0.08);
+            --shadow-lg: 0 20px 25px rgba(79, 70, 229, 0.1), 0 10px 10px rgba(10, 10, 31, 0.04);
+            --shadow-glow: 0 0 40px rgba(79, 70, 229, 0.15);
         }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: var(--font-body);
+            background: var(--bg);
+            color: var(--ink);
+            font-size: 15px;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            inset: -50%;
+            background: 
+                radial-gradient(circle at 20% 20%, rgba(79, 70, 229, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 80% 80%, rgba(124, 58, 237, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 50% 30%, rgba(6, 182, 212, 0.04) 0%, transparent 40%);
+            z-index: -1;
+            animation: meshMove 20s ease-in-out infinite;
+        }
+        @keyframes meshMove {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(-5%, -5%); }
+        }
+
+        .nav {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(250, 250, 251, 0.8);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-bottom: 1px solid var(--line);
+        }
+        .nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 18px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: var(--ink);
+        }
+        .logo-mark {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--electric) 0%, var(--violet) 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow-glow);
+        }
+        .logo-mark svg { width: 18px; height: 18px; fill: white; }
+        .logo-text {
+            font-family: var(--font-display);
+            font-size: 22px;
+            font-weight: 500;
+            letter-spacing: -0.02em;
+            font-variation-settings: "opsz" 144, "SOFT" 30;
+        }
+        .logo-text em {
+            font-style: italic;
+            font-weight: 400;
+            background: linear-gradient(135deg, var(--electric) 0%, var(--violet) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .nav-meta {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            font-size: 12px;
+            color: var(--ink-muted);
+            font-family: var(--font-mono);
+        }
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            border-radius: 100px;
+            font-size: 11px;
+            color: var(--success);
+            font-weight: 500;
+        }
+        .status-dot {
+            width: 5px; height: 5px;
+            background: var(--success);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--success);
+            animation: pulse 2s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.2); }
+        }
+
+        .hero {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 80px 40px 60px;
+        }
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 14px 6px 6px;
+            background: var(--bg-paper);
+            border: 1px solid var(--line);
+            border-radius: 100px;
+            font-size: 12px;
+            color: var(--ink-soft);
+            margin-bottom: 32px;
+            font-weight: 500;
+            box-shadow: var(--shadow-sm);
+        }
+        .hero-badge-tag {
+            background: linear-gradient(135deg, var(--electric) 0%, var(--violet) 100%);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 100px;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+        }
+        .hero-title {
+            font-family: var(--font-display);
+            font-weight: 300;
+            font-size: clamp(52px, 7vw, 96px);
+            line-height: 0.95;
+            letter-spacing: -0.04em;
+            color: var(--ink);
+            font-variation-settings: "opsz" 144, "SOFT" 50;
+            margin-bottom: 24px;
+            max-width: 900px;
+        }
+        .hero-title em {
+            font-style: italic;
+            font-weight: 300;
+            background: linear-gradient(135deg, var(--electric) 0%, var(--violet) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .hero-description {
+            max-width: 620px;
+            font-size: 19px;
+            line-height: 1.55;
+            color: var(--ink-soft);
+        }
+        .hero-description strong { color: var(--ink); font-weight: 500; }
+        .feature-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-top: 56px;
+        }
+        .feature-card {
+            background: var(--bg-paper);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        .feature-card::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, var(--electric) 0%, var(--violet) 100%);
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .feature-card:hover {
+            border-color: var(--electric);
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+        .feature-card:hover::after {
+            transform: scaleX(1);
+        }
+        .feature-card-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+        .feature-icon {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, var(--electric) 0%, var(--violet) 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 16px rgba(79, 70, 229, 0.25);
+            transition: transform 0.3s;
+        }
+        .feature-card:hover .feature-icon {
+            transform: rotate(-8deg) scale(1.08);
+        }
+        .feature-icon svg {
+            width: 22px;
+            height: 22px;
+            stroke: white;
+            stroke-width: 2;
+            fill: none;
+        }
+        .feature-count {
+            font-family: var(--font-display);
+            font-size: 44px;
+            font-weight: 300;
+            line-height: 1;
+            color: var(--ink);
+            letter-spacing: -0.03em;
+            font-variation-settings: "opsz" 144, "SOFT" 30;
+            font-style: italic;
+            background: linear-gradient(135deg, var(--electric) 0%, var(--violet) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .feature-title {
+            font-family: var(--font-display);
+            font-size: 19px;
+            font-weight: 500;
+            color: var(--ink);
+            margin-bottom: 6px;
+            letter-spacing: -0.01em;
+        }
+        .feature-desc {
+            font-size: 13px;
+            color: var(--ink-muted);
+            line-height: 1.5;
+        }
+        @media (max-width: 900px) {
+            .feature-cards { grid-template-columns: 1fr; gap: 12px; margin-top: 40px; }
+            .feature-card { padding: 20px; }
+            .feature-count { font-size: 36px; }
+        }
+
+        .main {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px 40px 80px;
+        }
+        .form-wrapper {
+            background: var(--bg-paper);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-xl);
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+            position: relative;
+        }
+        .form-wrapper::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle at top right, rgba(124, 58, 237, 0.08), transparent 70%);
+            pointer-events: none;
+        }
+        .section {
+            padding: 40px 48px;
+            border-bottom: 1px solid var(--line-soft);
+        }
+        .section:last-of-type { border-bottom: none; }
+        .section-header {
+            display: flex;
+            align-items: baseline;
+            gap: 20px;
+            margin-bottom: 28px;
+            flex-wrap: wrap;
+        }
+        .section-number {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--electric);
+            letter-spacing: 0.15em;
+            background: var(--electric-light);
+            padding: 4px 10px;
+            border-radius: 6px;
+        }
+        .section-title {
+            font-family: var(--font-display);
+            font-size: 28px;
+            font-weight: 400;
+            letter-spacing: -0.025em;
+            color: var(--ink);
+            font-variation-settings: "opsz" 144;
+        }
+        .section-title em { font-style: italic; color: var(--electric); }
+        .section-desc {
+            font-size: 13px;
+            color: var(--ink-muted);
+            margin-left: auto;
+            font-family: var(--font-mono);
+        }
+
+        .field-group { display: grid; gap: 24px; }
+        .field-group.two-col { grid-template-columns: 1fr 1fr; gap: 24px; }
+        .field { display: flex; flex-direction: column; gap: 10px; }
+        .field-label {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--ink-muted);
+        }
+        .field-input, .field-select, .field-textarea {
+            width: 100%;
+            padding: 14px 18px;
+            background: var(--bg);
+            border: 1.5px solid var(--line);
+            border-radius: var(--radius-md);
+            font-family: var(--font-body);
+            font-size: 15px;
+            color: var(--ink);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .field-input:hover, .field-select:hover, .field-textarea:hover { border-color: var(--ink-light); }
+        .field-input:focus, .field-select:focus, .field-textarea:focus {
+            outline: none;
+            border-color: var(--electric);
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.12);
+            background: var(--bg-paper);
+        }
+        .field-textarea { resize: vertical; min-height: 130px; line-height: 1.6; }
+        .field-select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4L6 8L10 4' stroke='%234F46E5' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 18px center;
+            padding-right: 44px;
+            cursor: pointer;
+        }
+
+        .mode-toggle {
+            display: inline-flex;
+            padding: 4px;
+            background: var(--bg);
+            border: 1.5px solid var(--line);
+            border-radius: var(--radius-md);
+            margin-bottom: 24px;
+        }
+        .mode-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--ink-muted);
+            cursor: pointer;
+            border-radius: 7px;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .mode-option input { display: none; }
+        .mode-option:has(input:checked) {
+            background: linear-gradient(135deg, var(--electric) 0%, var(--violet) 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+        }
+        .mode-option-icon { width: 16px; height: 16px; stroke: currentColor; stroke-width: 2; fill: none; }
+
+        .upload-zone {
+            border: 2px dashed var(--line);
+            border-radius: var(--radius-lg);
+            padding: 56px 32px;
+            text-align: center;
+            background: var(--bg);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .upload-zone:hover {
+            border-color: var(--electric);
+            background: var(--electric-light);
+            transform: translateY(-2px);
+        }
+        .upload-zone.drag-over {
+            border-color: var(--violet);
+            background: var(--violet-light);
+            transform: scale(1.01);
+            box-shadow: var(--shadow-glow);
+        }
+        .upload-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 16px;
+            background: linear-gradient(135deg, var(--electric) 0%, var(--violet) 100%);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 24px rgba(79, 70, 229, 0.25);
+            transition: transform 0.3s;
+        }
+        .upload-zone:hover .upload-icon { transform: scale(1.1) rotate(-5deg); }
+        .upload-icon svg { width: 22px; height: 22px; stroke: white; stroke-width: 2; fill: none; }
+        .upload-text { font-size: 16px; color: var(--ink); font-weight: 500; margin-bottom: 6px; }
+        .upload-hint { font-size: 12px; color: var(--ink-muted); font-family: var(--font-mono); }
+        .file-selected {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 16px;
+            padding: 10px 16px;
+            background: var(--success);
+            color: white;
+            border-radius: 100px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .file-selected.visible { display: inline-flex; }
+
+        .chip-group { display: flex; flex-wrap: wrap; gap: 8px; }
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 18px;
+            background: var(--bg);
+            border: 1.5px solid var(--line);
+            border-radius: 100px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--ink-soft);
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none;
+        }
+        .chip input { display: none; }
+        .chip:hover {
+            border-color: var(--electric);
+            color: var(--electric);
+            transform: translateY(-2px);
+        }
+        .chip-indicator {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--line);
+            transition: all 0.2s;
+        }
+        .chip:has(input:checked) {
+            background: linear-gradient(135deg, var(--electric) 0%, var(--violet) 100%);
+            border-color: transparent;
+            color: white;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+        }
+        .chip:has(input:checked) .chip-indicator {
+            background: white;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+        }
+        .chip.chip-difficulty:has(input:checked) {
+            background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+        }
+        .chip.chip-bloom:has(input:checked) {
+            background: linear-gradient(135deg, #06B6D4 0%, #0891B2 100%);
+            box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
+        }
+
+        .number-input {
+            display: flex;
+            align-items: center;
+            background: var(--bg);
+            border: 1.5px solid var(--line);
+            border-radius: var(--radius-md);
+            max-width: 200px;
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+        .number-input:focus-within {
+            border-color: var(--electric);
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.12);
+        }
+        .number-btn {
+            width: 48px; height: 52px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 20px;
+            color: var(--ink-muted);
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .number-btn:hover {
+            background: var(--electric);
+            color: white;
+        }
+        .number-input input {
+            flex: 1;
+            text-align: center;
+            border: none;
+            background: transparent;
+            font-family: var(--font-display);
+            font-size: 24px;
+            font-weight: 500;
+            color: var(--ink);
+            padding: 8px 0;
+            font-variation-settings: "opsz" 144;
+        }
+        .number-input input:focus { outline: none; }
+        .number-input input::-webkit-inner-spin-button,
+        .number-input input::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .generate-section {
+            padding: 32px 48px;
+            background: linear-gradient(180deg, transparent 0%, var(--bg-tint) 100%);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+        .generate-info { font-family: var(--font-mono); font-size: 12px; color: var(--ink-muted); }
+        .generate-info strong { color: var(--electric); font-weight: 600; }
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 36px;
+            background: linear-gradient(135deg, var(--electric) 0%, var(--violet) 100%);
+            color: white;
+            border: none;
+            border-radius: 100px;
+            font-family: var(--font-body);
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(79, 70, 229, 0.35);
+        }
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, var(--violet) 0%, var(--electric) 100%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .btn-primary > * { position: relative; z-index: 1; }
+        .btn-primary:hover::before { opacity: 1; }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(79, 70, 229, 0.5);
+        }
+        .btn-primary:disabled {
+            background: var(--ink-light);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .btn-primary:disabled::before { display: none; }
+        .btn-primary svg {
+            width: 18px; height: 18px;
+            stroke: currentColor;
+            stroke-width: 2.5;
+            fill: none;
+            transition: transform 0.3s;
+        }
+        .btn-primary:hover svg { transform: translateX(5px); }
+
+        .loading { display: none; text-align: center; padding: 80px 40px; }
+        .loading.active { display: block; animation: fadeIn 0.4s ease; }
+        .loading-visual { display: inline-flex; gap: 10px; margin-bottom: 28px; }
+        .loading-visual span {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            animation: bounce 1.4s ease-in-out infinite;
+        }
+        .loading-visual span:nth-child(1) { background: var(--electric); animation-delay: -0.32s; }
+        .loading-visual span:nth-child(2) { background: var(--violet); animation-delay: -0.16s; }
+        .loading-visual span:nth-child(3) { background: var(--cyan); }
+        @keyframes bounce {
+            0%, 80%, 100% { transform: translateY(0) scale(0.8); opacity: 0.6; }
+            40% { transform: translateY(-14px) scale(1); opacity: 1; }
+        }
+        .loading-text {
+            font-family: var(--font-display);
+            font-size: 22px;
+            font-style: italic;
+            color: var(--ink);
+            margin-bottom: 8px;
+        }
+        .loading-hint {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            color: var(--ink-muted);
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .error {
+            display: none;
+            margin: 24px 48px;
+            padding: 14px 18px;
+            background: var(--error-bg);
+            border-left: 3px solid var(--error);
+            border-radius: var(--radius-sm);
+            color: var(--error);
+            font-size: 14px;
+            animation: slideIn 0.3s ease;
+        }
+        .error.active { display: block; }
+        @keyframes slideIn {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .results { display: none; margin-top: 60px; animation: fadeIn 0.5s ease; }
+        .results.active { display: block; }
+        .results-header {
+            display: flex;
+            align-items: baseline;
+            gap: 16px;
+            margin-bottom: 32px;
+            padding-bottom: 24px;
+            border-bottom: 2px solid var(--line);
+            flex-wrap: wrap;
+        }
+        .results-title {
+            font-family: var(--font-display);
+            font-size: 40px;
+            font-weight: 400;
+            letter-spacing: -0.03em;
+            color: var(--ink);
+        }
+        .results-title em {
+            font-style: italic;
+            background: linear-gradient(135deg, var(--electric) 0%, var(--violet) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .results-count {
+            padding: 6px 14px;
+            background: var(--electric-light);
+            color: var(--electric);
+            border-radius: 100px;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            margin-left: auto;
+        }
+
+        .export-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 40px;
+            padding: 16px 20px;
+            background: var(--bg-paper);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-lg);
+            align-items: center;
+            flex-wrap: wrap;
+            box-shadow: var(--shadow-sm);
+        }
+        .export-label {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--ink-muted);
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            margin-right: 8px;
+        }
+        .export-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--bg);
+            border: 1.5px solid var(--line);
+            border-radius: 100px;
+            font-family: var(--font-body);
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--ink-soft);
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .export-btn:hover {
+            background: linear-gradient(135deg, var(--electric) 0%, var(--violet) 100%);
+            color: white;
+            border-color: transparent;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+        }
+        .export-btn svg { width: 14px; height: 14px; stroke: currentColor; stroke-width: 2; fill: none; }
+
+        .question-card {
+            background: var(--bg-paper);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-lg);
+            padding: 32px 36px;
+            margin-bottom: 16px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        .question-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(180deg, var(--electric) 0%, var(--violet) 100%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .question-card:hover {
+            border-color: var(--electric);
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+        .question-card:hover::before { opacity: 1; }
+        .question-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .question-number {
+            font-family: var(--font-display);
+            font-style: italic;
+            font-weight: 500;
+            font-size: 16px;
+            background: linear-gradient(135deg, var(--electric) 0%, var(--violet) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .question-number::before {
+            content: 'Q';
+            font-family: var(--font-mono);
+            font-style: normal;
+            font-size: 11px;
+            margin-right: 4px;
+            color: var(--ink-muted);
+            -webkit-text-fill-color: var(--ink-muted);
+        }
+        .question-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+        .tag {
+            display: inline-block;
+            padding: 4px 10px;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            border-radius: 6px;
+        }
+        .tag-type {
+            background: linear-gradient(135deg, var(--electric) 0%, var(--violet) 100%);
+            color: white;
+        }
+        .tag-difficulty { background: rgba(245, 158, 11, 0.12); color: #B45309; }
+        .tag-bloom { background: rgba(6, 182, 212, 0.12); color: #0891B2; }
+        .question-text {
+            font-family: var(--font-display);
+            font-size: 22px;
+            font-weight: 400;
+            line-height: 1.4;
+            color: var(--ink);
+            margin-bottom: 20px;
+            letter-spacing: -0.015em;
+        }
+        .options { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+        .option {
+            padding: 14px 18px 14px 44px;
+            background: var(--bg);
+            border: 1.5px solid var(--line-soft);
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            color: var(--ink-soft);
+            transition: all 0.2s;
+            position: relative;
+        }
+        .option::before {
+            content: '';
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            border: 1.5px solid var(--line);
+            border-radius: 50%;
+            background: white;
+        }
+        .option.correct {
+            background: rgba(16, 185, 129, 0.06);
+            border-color: var(--success);
+            color: var(--ink);
+            font-weight: 500;
+        }
+        .option.correct::before {
+            border-color: var(--success);
+            background: var(--success);
+            box-shadow: 0 0 0 2px white inset;
+        }
+        .answer-section {
+            padding: 18px 22px;
+            background: linear-gradient(135deg, var(--electric-light) 0%, var(--violet-light) 100%);
+            border-radius: var(--radius-md);
+            border: 1px solid rgba(79, 70, 229, 0.12);
+        }
+        .answer-label {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--electric);
+            margin-bottom: 8px;
+            display: block;
+        }
+        .answer-text {
+            color: var(--ink);
+            font-weight: 500;
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 10px;
+        }
+        .answer-explanation {
+            padding-top: 10px;
+            margin-top: 10px;
+            border-top: 1px solid rgba(79, 70, 229, 0.15);
+            font-size: 13px;
+            color: var(--ink-soft);
+            font-style: italic;
+            font-family: var(--font-display);
+            line-height: 1.5;
+        }
+
+        .footer {
+            max-width: 1400px;
+            margin: 60px auto 0;
+            padding: 40px;
+            border-top: 1px solid var(--line);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--ink-muted);
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .footer strong { color: var(--ink); font-weight: 600; }
+        .footer a {
+            background: linear-gradient(135deg, var(--electric) 0%, var(--violet) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        @media (max-width: 900px) {
+            .hero { padding: 60px 24px 40px; }
+            .main { padding: 20px 16px 60px; }
+            .section { padding: 32px 24px; }
+            .section-header { flex-wrap: wrap; }
+            .section-desc { margin-left: 0; width: 100%; margin-top: 4px; font-size: 12px; }
+            .field-group.two-col { grid-template-columns: 1fr; }
+            .generate-section { padding: 24px; flex-direction: column; align-items: stretch; }
+            .btn-primary { justify-content: center; }
+            .nav-inner { padding: 14px 24px; }
+            .nav-meta { display: none; }
+            .question-card { padding: 24px; }
+            .question-text { font-size: 18px; }
+            .results-title { font-size: 30px; }
+            .footer { flex-direction: column; gap: 12px; text-align: center; padding: 30px 24px; }
+        }
+
         @media print {
-            body * { visibility: hidden; }
-            .quiz-display, .quiz-display * { visibility: visible; }
-            .quiz-display { position: absolute; left: 0; top: 0; width: 100%; }
-            .export-buttons, .export-info { display: none !important; }
+            .nav, .hero, .form-wrapper, .footer, .export-bar { display: none !important; }
+            .results { margin-top: 0 !important; }
+            body { background: white; }
+            body::before { display: none; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🎓 AI Quiz Generator</h1>
-            <p>Generate intelligent quizzes with Bloom's Taxonomy & difficulty levels</p>
-        </div>
-        <div class="content">
-            <div class="section">
-                <h2><span class="section-icon">📚</span>Content Source</h2>
-                <div class="form-group">
-                    <label>Select Input Mode:</label>
-                    <div class="radio-group">
-                        <div class="radio-item"><input type="radio" name="inputMode" id="modePDF" value="pdf" checked><label for="modePDF">Upload PDF</label></div>
-                        <div class="radio-item"><input type="radio" name="inputMode" id="modeChapter" value="chapter"><label for="modeChapter">Select Chapter/Topic</label></div>
-                    </div>
+    <nav class="nav">
+        <div class="nav-inner">
+            <a href="#" class="logo">
+                <div class="logo-mark">
+                    <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
                 </div>
-                <div id="pdfSection" class="form-group">
-                    <label>Upload PDF Document:</label>
-                    <div class="file-upload-area" id="dropZone">
-                        <div class="upload-icon">📄</div>
-                        <p>Drag & drop your PDF here or click to browse</p>
+                <span class="logo-text">Quiz<em>Gen</em></span>
+            </a>
+            <div class="nav-meta">
+                <span class="status-pill">
+                    <span class="status-dot"></span>
+                    Gemini online
+                </span>
+                <span>v1.0</span>
+            </div>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <div class="hero-badge">
+            <span class="hero-badge-tag">NEW</span>
+            Powered by Google Gemini AI
+        </div>
+        <h1 class="hero-title">
+            Craft smarter quizzes<br>
+            in <em>seconds</em>, not hours.
+        </h1>
+        <p class="hero-description">
+            Turn any <strong>PDF or topic</strong> into a thoughtfully composed assessment — 
+            calibrated by difficulty, mapped to <strong>Bloom's Taxonomy</strong>, 
+            and ready to export. Built for teachers who care about learning.
+        </p>
+
+        <div class="feature-cards">
+            <div class="feature-card">
+                <div class="feature-card-top">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M9 11H5a2 2 0 00-2 2v7a2 2 0 002 2h14a2 2 0 002-2v-7a2 2 0 00-2-2h-4M9 11V5a3 3 0 016 0v6M9 11h6"/>
+                        </svg>
+                    </div>
+                    <div class="feature-count">04</div>
+                </div>
+                <div class="feature-title">Question formats</div>
+                <div class="feature-desc">Multiple choice, single choice, true/false, and subjective questions</div>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-card-top">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                        </svg>
+                    </div>
+                    <div class="feature-count">06</div>
+                </div>
+                <div class="feature-title">Bloom's levels</div>
+                <div class="feature-desc">Remember, understand, apply, analyze, evaluate, and create</div>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-card-top">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                        </svg>
+                    </div>
+                    <div class="feature-count">05</div>
+                </div>
+                <div class="feature-title">Export formats</div>
+                <div class="feature-desc">CSV, Excel, Word, JSON, and printable PDF — ready to share</div>
+            </div>
+        </div>
+    </section>
+
+    <main class="main">
+        <div class="form-wrapper">
+            <div class="section">
+                <div class="section-header">
+                    <span class="section-number">01 / 03</span>
+                    <h2 class="section-title">Source <em>material</em></h2>
+                    <span class="section-desc">Upload or describe</span>
+                </div>
+
+                <div class="mode-toggle">
+                    <label class="mode-option">
+                        <input type="radio" name="inputMode" id="modePDF" value="pdf" checked>
+                        <svg class="mode-option-icon" viewBox="0 0 20 20">
+                            <path d="M13 2H5a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V6l-4-4z"/>
+                            <path d="M13 2v4h4M8 12h4M8 15h4"/>
+                        </svg>
+                        Upload PDF
+                    </label>
+                    <label class="mode-option">
+                        <input type="radio" name="inputMode" id="modeChapter" value="chapter">
+                        <svg class="mode-option-icon" viewBox="0 0 20 20">
+                            <path d="M4 4h12v12H4z M4 8h12 M8 4v12"/>
+                        </svg>
+                        Enter Topic
+                    </label>
+                </div>
+
+                <div id="pdfSection" class="field">
+                    <div class="upload-zone" id="dropZone">
+                        <div class="upload-icon">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                            </svg>
+                        </div>
+                        <div class="upload-text">Drop a PDF or click to browse</div>
+                        <div class="upload-hint">Maximum 5MB · Text-based PDFs work best</div>
                         <input type="file" id="pdfFile" accept=".pdf" style="display: none;">
-                        <div class="file-name" id="fileName"></div>
+                        <div class="file-selected" id="fileName"></div>
                     </div>
                 </div>
-                <div id="chapterSection" class="form-group" style="display: none;">
-                    <label>Enter Chapter/Topic Details:</label>
-                    <textarea id="chapterContent" rows="5" placeholder="Enter the chapter name, topic, or paste relevant content here..."></textarea>
+
+                <div id="chapterSection" class="field" style="display: none;">
+                    <label class="field-label">Chapter or topic description</label>
+                    <textarea class="field-textarea" id="chapterContent" 
+                        placeholder="Describe the subject in detail. Example: Chapter 6 — Photosynthesis. The biochemical process by which plants convert light energy into chemical energy..."></textarea>
                 </div>
             </div>
+
             <div class="section">
-                <h2><span class="section-icon">🏫</span>Educational Details</h2>
-                <div class="form-group">
-                    <label>Select Board:</label>
-                    <select id="boardSelect">
-                        <option value="CBSE">CBSE</option>
-                        <option value="ICSE">ICSE</option>
-                        <option value="State Board">State Board</option>
-                        <option value="IB">IB (International Baccalaureate)</option>
-                        <option value="Cambridge">Cambridge</option>
-                        <option value="Other">Other</option>
-                    </select>
+                <div class="section-header">
+                    <span class="section-number">02 / 03</span>
+                    <h2 class="section-title">Educational <em>context</em></h2>
+                    <span class="section-desc">Board and class</span>
                 </div>
-                <div class="form-group">
-                    <label>Select Class/Grade:</label>
-                    <select id="classSelect">
-                        <option value="6">Class 6</option><option value="7">Class 7</option><option value="8">Class 8</option>
-                        <option value="9">Class 9</option><option value="10">Class 10</option><option value="11">Class 11</option>
-                        <option value="12">Class 12</option><option value="College">College/University</option>
-                    </select>
+
+                <div class="field-group two-col">
+                    <div class="field">
+                        <label class="field-label">Curriculum board</label>
+                        <select class="field-select" id="boardSelect">
+                            <option value="CBSE">CBSE — Central Board</option>
+                            <option value="ICSE">ICSE — Indian Certificate</option>
+                            <option value="State Board">State Board</option>
+                            <option value="IB">IB — International Baccalaureate</option>
+                            <option value="Cambridge">Cambridge International</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label class="field-label">Grade level</label>
+                        <select class="field-select" id="classSelect">
+                            <option value="6">Class 6</option>
+                            <option value="7">Class 7</option>
+                            <option value="8">Class 8</option>
+                            <option value="9">Class 9</option>
+                            <option value="10" selected>Class 10</option>
+                            <option value="11">Class 11</option>
+                            <option value="12">Class 12</option>
+                            <option value="College">College / University</option>
+                        </select>
+                    </div>
                 </div>
             </div>
+
             <div class="section">
-                <h2><span class="section-icon">⚙️</span>Quiz Configuration</h2>
-                <div class="form-group">
-                    <label>Number of Questions:</label>
-                    <input type="number" id="numQuestions" min="1" max="30" value="10">
+                <div class="section-header">
+                    <span class="section-number">03 / 03</span>
+                    <h2 class="section-title">Quiz <em>parameters</em></h2>
+                    <span class="section-desc">Fine-tune your quiz</span>
                 </div>
-                <div class="form-group">
-                    <label>Question Types:</label>
-                    <div class="checkbox-group">
-                        <div class="checkbox-item"><input type="checkbox" id="typeMCQ" value="MCQ" checked><label for="typeMCQ">Multiple Choice (MCQ)</label></div>
-                        <div class="checkbox-item"><input type="checkbox" id="typeSCQ" value="SCQ"><label for="typeSCQ">Single Choice</label></div>
-                        <div class="checkbox-item"><input type="checkbox" id="typeTrueFalse" value="TrueFalse"><label for="typeTrueFalse">True/False</label></div>
-                        <div class="checkbox-item"><input type="checkbox" id="typeSubjective" value="Subjective"><label for="typeSubjective">Subjective</label></div>
+
+                <div class="field-group">
+                    <div class="field">
+                        <label class="field-label">Number of questions</label>
+                        <div class="number-input">
+                            <button type="button" class="number-btn" id="numMinus">−</button>
+                            <input type="number" id="numQuestions" min="1" max="30" value="10">
+                            <button type="button" class="number-btn" id="numPlus">+</button>
+                        </div>
                     </div>
-                </div>
-                <div class="form-group">
-                    <label>Difficulty Levels:</label>
-                    <div class="checkbox-group">
-                        <div class="checkbox-item"><input type="checkbox" id="diffEasy" value="Easy" checked><label for="diffEasy">Easy</label></div>
-                        <div class="checkbox-item"><input type="checkbox" id="diffMedium" value="Medium" checked><label for="diffMedium">Medium</label></div>
-                        <div class="checkbox-item"><input type="checkbox" id="diffHard" value="Hard"><label for="diffHard">Hard</label></div>
+
+                    <div class="field">
+                        <label class="field-label">Question formats</label>
+                        <div class="chip-group">
+                            <label class="chip"><input type="checkbox" id="typeMCQ" value="MCQ" checked><span class="chip-indicator"></span>Multiple Choice</label>
+                            <label class="chip"><input type="checkbox" id="typeSCQ" value="SCQ"><span class="chip-indicator"></span>Single Choice</label>
+                            <label class="chip"><input type="checkbox" id="typeTrueFalse" value="TrueFalse"><span class="chip-indicator"></span>True / False</label>
+                            <label class="chip"><input type="checkbox" id="typeSubjective" value="Subjective"><span class="chip-indicator"></span>Subjective</label>
+                        </div>
                     </div>
-                </div>
-                <div class="form-group">
-                    <label>Bloom's Taxonomy Levels:</label>
-                    <div class="checkbox-group">
-                        <div class="checkbox-item"><input type="checkbox" id="bloomRemember" value="Remember" checked><label for="bloomRemember">Remember</label></div>
-                        <div class="checkbox-item"><input type="checkbox" id="bloomUnderstand" value="Understand" checked><label for="bloomUnderstand">Understand</label></div>
-                        <div class="checkbox-item"><input type="checkbox" id="bloomApply" value="Apply"><label for="bloomApply">Apply</label></div>
-                        <div class="checkbox-item"><input type="checkbox" id="bloomAnalyze" value="Analyze"><label for="bloomAnalyze">Analyze</label></div>
-                        <div class="checkbox-item"><input type="checkbox" id="bloomEvaluate" value="Evaluate"><label for="bloomEvaluate">Evaluate</label></div>
-                        <div class="checkbox-item"><input type="checkbox" id="bloomCreate" value="Create"><label for="bloomCreate">Create</label></div>
+
+                    <div class="field">
+                        <label class="field-label">Difficulty levels</label>
+                        <div class="chip-group">
+                            <label class="chip chip-difficulty"><input type="checkbox" id="diffEasy" value="Easy" checked><span class="chip-indicator"></span>Easy</label>
+                            <label class="chip chip-difficulty"><input type="checkbox" id="diffMedium" value="Medium" checked><span class="chip-indicator"></span>Medium</label>
+                            <label class="chip chip-difficulty"><input type="checkbox" id="diffHard" value="Hard"><span class="chip-indicator"></span>Hard</label>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label class="field-label">Bloom's Taxonomy levels</label>
+                        <div class="chip-group">
+                            <label class="chip chip-bloom"><input type="checkbox" id="bloomRemember" value="Remember" checked><span class="chip-indicator"></span>Remember</label>
+                            <label class="chip chip-bloom"><input type="checkbox" id="bloomUnderstand" value="Understand" checked><span class="chip-indicator"></span>Understand</label>
+                            <label class="chip chip-bloom"><input type="checkbox" id="bloomApply" value="Apply"><span class="chip-indicator"></span>Apply</label>
+                            <label class="chip chip-bloom"><input type="checkbox" id="bloomAnalyze" value="Analyze"><span class="chip-indicator"></span>Analyze</label>
+                            <label class="chip chip-bloom"><input type="checkbox" id="bloomEvaluate" value="Evaluate"><span class="chip-indicator"></span>Evaluate</label>
+                            <label class="chip chip-bloom"><input type="checkbox" id="bloomCreate" value="Create"><span class="chip-indicator"></span>Create</label>
+                        </div>
                     </div>
                 </div>
             </div>
-            <button class="generate-btn" id="generateBtn">🚀 Generate Quiz</button>
-            <div class="error-message" id="errorMessage"></div>
+
+            <div class="generate-section">
+                <div class="generate-info">
+                    ⚡ Average generation: <strong>15-30 seconds</strong>
+                </div>
+                <button class="btn-primary" id="generateBtn">
+                    <span>Generate quiz</span>
+                    <svg viewBox="0 0 16 16"><path d="M1 8h14M9 2l6 6-6 6"/></svg>
+                </button>
+            </div>
+
+            <div class="error" id="errorMessage"></div>
+
             <div class="loading" id="loading">
-                <div class="spinner"></div>
-                <p>Generating your intelligent quiz... This may take up to 30 seconds.</p>
-            </div>
-            <div class="quiz-display" id="quizDisplay">
-                <div class="section">
-                    <h2><span class="section-icon">📝</span>Generated Quiz</h2>
-                    <div class="export-info">
-                        📥 <strong>Export Formats:</strong> All exports use the standard column format: Question | Option_A-D | Answer | Answer_Key | Solution | Difficulty_Level | Bloom_Taxonomy_Level
-                    </div>
-                    <div class="export-buttons">
-                        <button class="export-btn export-csv" id="exportCSV">📄 Export CSV</button>
-                        <button class="export-btn export-excel" id="exportExcel">📊 Export Excel</button>
-                        <button class="export-btn export-word" id="exportWord">📝 Export Word</button>
-                        <button class="export-btn export-json" id="exportJSON">💾 Export JSON</button>
-                        <button class="export-btn export-print" id="exportPrint">🖨️ Print</button>
-                    </div>
-                    <div id="questionsContainer" style="margin-top: 25px;"></div>
+                <div class="loading-visual">
+                    <span></span><span></span><span></span>
                 </div>
+                <div class="loading-text">Crafting your quiz…</div>
+                <div class="loading-hint">Generating questions tailored to your needs</div>
             </div>
         </div>
-    </div>
+
+        <div class="results" id="quizDisplay">
+            <div class="results-header">
+                <h2 class="results-title">Your <em>quiz</em></h2>
+                <span class="results-count" id="resultsCount">—</span>
+            </div>
+
+            <div class="export-bar">
+                <span class="export-label">Export as</span>
+                <button class="export-btn" id="exportCSV"><svg viewBox="0 0 16 16"><path d="M2 2h12v12H2z M2 6h12 M6 2v12"/></svg>CSV</button>
+                <button class="export-btn" id="exportExcel"><svg viewBox="0 0 16 16"><path d="M2 2h12v12H2z M2 6h12 M6 2v12 M10 2v12"/></svg>Excel</button>
+                <button class="export-btn" id="exportWord"><svg viewBox="0 0 16 16"><path d="M3 2h10l1 2v10H3z M5 5h6 M5 8h6 M5 11h4"/></svg>Word</button>
+                <button class="export-btn" id="exportJSON"><svg viewBox="0 0 16 16"><path d="M5 3c-1 0-2 1-2 2v2c0 1-1 1-1 1s1 0 1 1v2c0 1 1 2 2 2 M11 3c1 0 2 1 2 2v2c0 1 1 1 1 1s-1 0-1 1v2c0 1-1 2-2 2"/></svg>JSON</button>
+                <button class="export-btn" id="exportPrint"><svg viewBox="0 0 16 16"><path d="M4 3h8v3H4z M4 11h8v3H4z M2 6h12v5H2z"/></svg>Print</button>
+            </div>
+
+            <div id="questionsContainer"></div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div><strong>QuizGen</strong> — AI Quiz Generator · Free for educators</div>
+        <div>Deployed on Vercel · Powered by <a href="https://ai.google.dev" target="_blank">Gemini</a></div>
+    </footer>
+
     <script>
         let uploadedFile = null;
         let generatedQuiz = null;
@@ -207,9 +1240,20 @@
             });
         });
 
+        const numInput = document.getElementById('numQuestions');
+        document.getElementById('numMinus').addEventListener('click', () => {
+            const val = parseInt(numInput.value) || 10;
+            if (val > 1) numInput.value = val - 1;
+        });
+        document.getElementById('numPlus').addEventListener('click', () => {
+            const val = parseInt(numInput.value) || 10;
+            if (val < 30) numInput.value = val + 1;
+        });
+
         const dropZone = document.getElementById('dropZone');
         const pdfFile = document.getElementById('pdfFile');
         const fileName = document.getElementById('fileName');
+
         dropZone.addEventListener('click', () => pdfFile.click());
         dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
         dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
@@ -222,9 +1266,10 @@
         pdfFile.addEventListener('change', (e) => { if (e.target.files[0]) handleFile(e.target.files[0]); });
 
         function handleFile(file) {
-            if (file.size > 5 * 1024 * 1024) { showError('PDF file is too large. Please upload a file under 5MB.'); return; }
+            if (file.size > 5 * 1024 * 1024) { showError('File exceeds 5MB limit.'); return; }
             uploadedFile = file;
-            fileName.textContent = `✅ ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+            fileName.textContent = `✓ ${file.name} · ${(file.size / 1024).toFixed(1)} KB`;
+            fileName.classList.add('visible');
         }
 
         document.getElementById('generateBtn').addEventListener('click', generateQuiz);
@@ -239,15 +1284,15 @@
             const inputMode = document.querySelector('input[name="inputMode"]:checked').value;
             if (inputMode === 'pdf' && !uploadedFile) { showError('Please upload a PDF file.'); return; }
             if (inputMode === 'chapter' && !document.getElementById('chapterContent').value.trim()) {
-                showError('Please enter chapter/topic details.'); return;
+                showError('Please describe the topic.'); return;
             }
 
             const questionTypes = getCheckedValues(['typeMCQ', 'typeSCQ', 'typeTrueFalse', 'typeSubjective']);
-            if (questionTypes.length === 0) { showError('Please select at least one question type.'); return; }
+            if (questionTypes.length === 0) { showError('Select at least one question format.'); return; }
             const difficulties = getCheckedValues(['diffEasy', 'diffMedium', 'diffHard']);
-            if (difficulties.length === 0) { showError('Please select at least one difficulty level.'); return; }
+            if (difficulties.length === 0) { showError('Select at least one difficulty level.'); return; }
             const bloomLevels = getCheckedValues(['bloomRemember', 'bloomUnderstand', 'bloomApply', 'bloomAnalyze', 'bloomEvaluate', 'bloomCreate']);
-            if (bloomLevels.length === 0) { showError('Please select at least one Bloom\'s Taxonomy level.'); return; }
+            if (bloomLevels.length === 0) { showError('Select at least one Bloom\'s Taxonomy level.'); return; }
 
             loading.classList.add('active');
             generateBtn.disabled = true;
@@ -264,7 +1309,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         pdfBase64, textContent,
-                        numQuestions: document.getElementById('numQuestions').value,
+                        numQuestions: numInput.value,
                         questionTypes, difficulties, bloomLevels,
                         board: document.getElementById('boardSelect').value,
                         classLevel: document.getElementById('classSelect').value
@@ -283,7 +1328,7 @@
                 quizDisplay.scrollIntoView({ behavior: 'smooth' });
             } catch (error) {
                 console.error('Error:', error);
-                showError('Failed to generate quiz: ' + error.message);
+                showError(error.message);
             } finally {
                 loading.classList.remove('active');
                 generateBtn.disabled = false;
@@ -309,10 +1354,16 @@
 
         function displayQuiz(quiz) {
             const container = document.getElementById('questionsContainer');
+            const count = document.getElementById('resultsCount');
             container.innerHTML = '';
-            quiz.questions.forEach(q => {
+            count.textContent = `${quiz.questions.length} QUESTIONS`;
+
+            quiz.questions.forEach((q, idx) => {
                 const card = document.createElement('div');
                 card.className = 'question-card';
+                card.style.animationDelay = `${idx * 60}ms`;
+                card.style.animation = 'fadeIn 0.5s ease both';
+
                 let optionsHTML = '';
                 if (q.options && q.options.length > 0) {
                     optionsHTML = '<div class="options">';
@@ -322,16 +1373,18 @@
                     });
                     optionsHTML += '</div>';
                 }
+
                 const answerHTML = q.type === 'Subjective'
-                    ? `<div class="answer-section"><div class="answer-label">Model Answer:</div><div>${escapeHTML(q.modelAnswer || q.correctAnswer || '')}</div></div>`
-                    : `<div class="answer-section"><div class="answer-label">Correct Answer:</div><div>${escapeHTML(q.correctAnswer || '')}</div>${q.explanation ? `<div style="margin-top: 10px;"><strong>Solution:</strong> ${escapeHTML(q.explanation)}</div>` : ''}</div>`;
+                    ? `<div class="answer-section"><span class="answer-label">Model Answer</span><div class="answer-text">${escapeHTML(q.modelAnswer || q.correctAnswer || '')}</div></div>`
+                    : `<div class="answer-section"><span class="answer-label">Correct Answer</span><div class="answer-text">${escapeHTML(q.correctAnswer || '')}</div>${q.explanation ? `<div class="answer-explanation">${escapeHTML(q.explanation)}</div>` : ''}</div>`;
+
                 card.innerHTML = `
-                    <div class="question-header">
-                        <div class="question-number">Question ${q.questionNumber}</div>
-                        <div class="question-meta">
-                            <span class="badge badge-type">${escapeHTML(q.type)}</span>
-                            <span class="badge badge-difficulty">${escapeHTML(q.difficulty)}</span>
-                            <span class="badge badge-bloom">${escapeHTML(q.bloomLevel)}</span>
+                    <div class="question-top">
+                        <div class="question-number">${String(q.questionNumber).padStart(2, '0')}</div>
+                        <div class="question-tags">
+                            <span class="tag tag-type">${escapeHTML(q.type)}</span>
+                            <span class="tag tag-difficulty">${escapeHTML(q.difficulty)}</span>
+                            <span class="tag tag-bloom">${escapeHTML(q.bloomLevel)}</span>
                         </div>
                     </div>
                     <div class="question-text">${escapeHTML(q.question)}</div>
@@ -347,7 +1400,6 @@
             return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
         }
 
-        // Convert quiz to standardized tabular format
         function quizToTableFormat(quiz) {
             return quiz.questions.map(q => {
                 const options = q.options || [];
@@ -384,12 +1436,8 @@
 
                 return {
                     'Question': q.question || '',
-                    'Option_A': optionA,
-                    'Option_B': optionB,
-                    'Option_C': optionC,
-                    'Option_D': optionD,
-                    'Answer': answerText,
-                    'Answer_Key': answerKey,
+                    'Option_A': optionA, 'Option_B': optionB, 'Option_C': optionC, 'Option_D': optionD,
+                    'Answer': answerText, 'Answer_Key': answerKey,
                     'Solution': q.explanation || q.modelAnswer || '',
                     'Difficulty_Level': q.difficulty || '',
                     'Bloom_Taxonomy_Level': q.bloomLevel || ''
@@ -419,10 +1467,7 @@
             if (!generatedQuiz) return;
             const rows = quizToTableFormat(generatedQuiz);
             const worksheet = XLSX.utils.json_to_sheet(rows, { header: HEADERS });
-            worksheet['!cols'] = [
-                { wch: 50 }, { wch: 25 }, { wch: 25 }, { wch: 25 }, { wch: 25 },
-                { wch: 30 }, { wch: 12 }, { wch: 40 }, { wch: 15 }, { wch: 20 }
-            ];
+            worksheet['!cols'] = [{ wch: 50 }, { wch: 25 }, { wch: 25 }, { wch: 25 }, { wch: 25 }, { wch: 30 }, { wch: 12 }, { wch: 40 }, { wch: 15 }, { wch: 20 }];
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, 'Quiz');
             XLSX.writeFile(workbook, `quiz_${Date.now()}.xlsx`);
@@ -432,11 +1477,7 @@
             if (!generatedQuiz) return;
             const rows = quizToTableFormat(generatedQuiz);
             const exportData = {
-                metadata: {
-                    generatedAt: new Date().toISOString(),
-                    totalQuestions: rows.length,
-                    columns: HEADERS
-                },
+                metadata: { generatedAt: new Date().toISOString(), totalQuestions: rows.length, columns: HEADERS },
                 questions: rows
             };
             const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
@@ -454,7 +1495,7 @@
                         children: [new TextRun({ text: h, bold: true, size: 18, color: 'FFFFFF' })],
                         alignment: AlignmentType.CENTER
                     })],
-                    shading: { fill: '667EEA' }
+                    shading: { fill: '4F46E5' }
                 }));
 
                 const dataRows = rows.map(row => new TableRow({
@@ -473,16 +1514,8 @@
                 const doc = new Document({
                     sections: [{
                         children: [
-                            new Paragraph({
-                                children: [new TextRun({ text: 'AI Generated Quiz', bold: true, size: 36 })],
-                                alignment: AlignmentType.CENTER,
-                                spacing: { after: 200 }
-                            }),
-                            new Paragraph({
-                                children: [new TextRun({ text: `Generated on: ${new Date().toLocaleString()}`, size: 20, italics: true })],
-                                alignment: AlignmentType.CENTER,
-                                spacing: { after: 400 }
-                            }),
+                            new Paragraph({ children: [new TextRun({ text: 'QuizGen Assessment', bold: true, size: 36 })], alignment: AlignmentType.CENTER, spacing: { after: 200 } }),
+                            new Paragraph({ children: [new TextRun({ text: `Generated: ${new Date().toLocaleString()}`, size: 20, italics: true })], alignment: AlignmentType.CENTER, spacing: { after: 400 } }),
                             table
                         ],
                         properties: { page: { size: { orientation: 'landscape' } } }
