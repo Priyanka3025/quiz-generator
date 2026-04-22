@@ -1390,6 +1390,45 @@
 
         const HEADERS = ['Question', 'Option_A', 'Option_B', 'Option_C', 'Option_D', 'Answer', 'Answer_Key', 'Solution', 'Difficulty_Level', 'Bloom_Taxonomy_Level'];
 
+        // Generate filename as Chapter_Class format (e.g., "Photosynthesis_Class10")
+        function getExportFilename() {
+            const classValue = document.getElementById('classSelect').value;
+            const boardValue = document.getElementById('boardSelect').value;
+            const inputMode = document.querySelector('input[name="inputMode"]:checked').value;
+            
+            // Clean helper - remove special chars, keep only alphanumerics and underscores
+            const clean = (str) => String(str || '')
+                .trim()
+                .replace(/[^a-zA-Z0-9\s]/g, '')  // remove special chars
+                .replace(/\s+/g, '_')             // spaces to underscores
+                .replace(/_+/g, '_')              // collapse multiple underscores
+                .replace(/^_|_$/g, '');           // trim underscores
+            
+            // Format class (e.g., "10" becomes "Class10", "College" stays as "College")
+            const classFormatted = /^\d+$/.test(classValue) ? `Class${classValue}` : clean(classValue);
+            
+            // Get chapter/topic name
+            let chapterName = '';
+            if (inputMode === 'pdf' && uploadedFile) {
+                // Use PDF filename without extension
+                chapterName = clean(uploadedFile.name.replace(/\.pdf$/i, ''));
+            } else if (inputMode === 'chapter') {
+                // Use first 5 words of the chapter description
+                const content = document.getElementById('chapterContent').value.trim();
+                const firstLine = content.split(/[\n.!?]/)[0];  // first sentence/line
+                const words = firstLine.split(/\s+/).slice(0, 5).join(' ');
+                chapterName = clean(words);
+            }
+            
+            // Fallback if chapter name is empty
+            if (!chapterName) chapterName = 'Quiz';
+            
+            // Limit length to avoid super long filenames
+            if (chapterName.length > 50) chapterName = chapterName.substring(0, 50);
+            
+            return `${chapterName}_${classFormatted}`;
+        }
+
         document.getElementById('exportCSV').addEventListener('click', () => {
             if (!generatedQuiz) return;
             const rows = quizToTableFormat(generatedQuiz);
@@ -1403,7 +1442,7 @@
             let csv = HEADERS.join(',') + '\n';
             rows.forEach(row => { csv += HEADERS.map(h => escapeCSV(row[h])).join(',') + '\n'; });
             const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
-            downloadBlob(blob, `quiz_${Date.now()}.csv`);
+            downloadBlob(blob, `${getExportFilename()}.csv`);
         });
 
         document.getElementById('exportExcel').addEventListener('click', () => {
@@ -1413,7 +1452,7 @@
             worksheet['!cols'] = [{ wch: 50 }, { wch: 25 }, { wch: 25 }, { wch: 25 }, { wch: 25 }, { wch: 30 }, { wch: 12 }, { wch: 40 }, { wch: 15 }, { wch: 20 }];
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, 'Quiz');
-            XLSX.writeFile(workbook, `quiz_${Date.now()}.xlsx`);
+            XLSX.writeFile(workbook, `${getExportFilename()}.xlsx`);
         });
 
         document.getElementById('exportJSON').addEventListener('click', () => {
@@ -1424,7 +1463,7 @@
                 questions: rows
             };
             const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-            downloadBlob(blob, `quiz_${Date.now()}.json`);
+            downloadBlob(blob, `${getExportFilename()}.json`);
         });
 
         document.getElementById('exportWord').addEventListener('click', async () => {
@@ -1466,7 +1505,7 @@
                 });
 
                 const blob = await Packer.toBlob(doc);
-                downloadBlob(blob, `quiz_${Date.now()}.docx`);
+                downloadBlob(blob, `${getExportFilename()}.docx`);
             } catch (err) {
                 console.error('Word export error:', err);
                 showError('Failed to export Word document: ' + err.message);
