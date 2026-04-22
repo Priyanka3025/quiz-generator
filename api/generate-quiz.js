@@ -211,6 +211,24 @@ For each TYPE, follow these formats STRICTLY:
   - MUST have "modelAnswer" field with detailed answer (2-4 sentences minimum)
 
 ============================
+MATH & SCIENCE NOTATION
+============================
+
+For mathematical and scientific content, use these formatting conventions:
+- Use ^ for superscripts: x^2 means x squared, 10^3 means 10 cubed
+- Use _ for subscripts: H_2O means water, x_1 means x-sub-1
+- Use * for multiplication (not ×)
+- Use / for division (or fractions)
+- For complex expressions, group with braces: x^{10}, H_{2}O
+- Use standard symbols: π, ∞, ≤, ≥, ≠, ± where appropriate
+- Chemical formulas: H_2SO_4, CO_2, Ca(OH)_2
+
+Examples:
+- "Solve the equation x^2 + 5x + 6 = 0"
+- "What is the molecular formula of water? H_2O"
+- "Find the derivative of f(x) = x^3 + 2x^2"
+
+============================
 CONTENT
 ============================
 ${config.textContent || 'Generate questions from your general knowledge of this subject/chapter.'}
