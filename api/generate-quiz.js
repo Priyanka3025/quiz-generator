@@ -24,7 +24,8 @@ module.exports = async function handler(req, res) {
       difficulties,
       bloomLevels,
       board,
-      classLevel
+      classLevel,
+      language
     } = req.body;
 
     const apiKey = process.env.GEMINI_API_KEY;
@@ -41,7 +42,8 @@ module.exports = async function handler(req, res) {
       bloomLevels,
       board,
       classLevel,
-      textContent
+      textContent,
+      language
     });
 
     const parts = [];
@@ -139,6 +141,7 @@ module.exports = async function handler(req, res) {
 function buildPrompt(config) {
   const allowedTypes = config.questionTypes.join(', ');
   const numQuestions = parseInt(config.numQuestions);
+  const language = config.language || 'English';
   
   // Calculate distribution guidance
   let distributionNote = '';
@@ -149,6 +152,11 @@ function buildPrompt(config) {
     const remainder = numQuestions % config.questionTypes.length;
     distributionNote = `Distribute the ${numQuestions} questions roughly equally across ONLY these types: ${allowedTypes}. Approximately ${perType} questions per type${remainder > 0 ? ` (extra questions can go to any of the selected types)` : ''}.`;
   }
+
+  // Language instruction
+  const languageNote = language === 'English' 
+    ? '' 
+    : `\n============================\nLANGUAGE REQUIREMENT (IMPORTANT)\n============================\n\nGenerate ALL content in ${language}. This includes:\n- The "question" field\n- All options in the "options" array\n- The "correctAnswer" field\n- The "explanation" field\n- The "modelAnswer" field (for Subjective questions)\n\nHowever, KEEP these fields in English:\n- "type" (e.g., "MCQ", "Subjective")\n- "difficulty" (e.g., "Easy", "Medium", "Hard")\n- "bloomLevel" (e.g., "Remember", "Understand")\n- "questionNumber"\n\nUse natural, grammatically correct ${language}. For technical/scientific terms, you may use English terminology where appropriate (e.g., "photosynthesis" is universally understood).\n`;
 
   return `You are an expert educator creating an educational quiz. Generate exactly ${numQuestions} questions.
 
@@ -169,12 +177,13 @@ CRITICAL RULES — MUST FOLLOW
 
 3. Bloom's Taxonomy levels allowed: ${config.bloomLevels.join(', ')}
    Every question's "bloomLevel" field MUST be one of these values.
-
+${languageNote}
 ============================
 EDUCATIONAL CONTEXT
 ============================
 - Board: ${config.board}
 - Class/Grade: ${config.classLevel}
+- Language: ${language}
 
 ============================
 QUESTION FORMAT RULES
@@ -192,7 +201,7 @@ For each TYPE, follow these formats STRICTLY:
   - MUST have "explanation" field
 
 • "TrueFalse":
-  - "options" MUST be exactly ["True", "False"]
+  - "options" MUST be exactly ["True", "False"] (keep these in English even if language is different)
   - "correctAnswer" MUST be exactly "True" or "False"
   - MUST have "explanation" field
 
@@ -238,5 +247,5 @@ For Subjective questions, use this structure instead:
   "modelAnswer": "Detailed model answer with key points explaining the concept thoroughly..."
 }
 
-FINAL REMINDER: Every question's "type" field MUST be one of [${allowedTypes}] — NOTHING else.`;
+FINAL REMINDER: Every question's "type" field MUST be one of [${allowedTypes}] — NOTHING else.${language !== 'English' ? ` All content (questions, options, answers, explanations) MUST be in ${language}.` : ''}`;
 }
