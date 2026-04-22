@@ -273,6 +273,22 @@
             color: var(--ink);
             letter-spacing: -0.015em;
             margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .section-optional {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--ink-muted);
+            background: var(--bg-subtle);
+            padding: 3px 8px;
+            border-radius: 4px;
+            letter-spacing: 0.02em;
+            text-transform: lowercase;
+            border: 1px solid var(--border);
         }
 
         .section-subtitle {
@@ -1011,46 +1027,8 @@
         <div class="form-wrapper">
             <div class="section">
                 <div class="section-header">
-                    <h2 class="section-title">Source material</h2>
-                    <p class="section-subtitle">Upload a PDF or describe the topic you want quiz questions for.</p>
-                </div>
-
-                <div class="segmented">
-                    <label class="segmented-option">
-                        <input type="radio" name="inputMode" id="modePDF" value="pdf" checked>
-                        Upload PDF
-                    </label>
-                    <label class="segmented-option">
-                        <input type="radio" name="inputMode" id="modeChapter" value="chapter">
-                        Enter topic
-                    </label>
-                </div>
-
-                <div id="pdfSection" class="field">
-                    <div class="upload-zone" id="dropZone">
-                        <div class="upload-icon">
-                            <svg viewBox="0 0 24 24">
-                                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
-                            </svg>
-                        </div>
-                        <div class="upload-text">Drop a PDF or click to browse</div>
-                        <div class="upload-hint">Up to 5MB · Text-based PDFs work best</div>
-                        <input type="file" id="pdfFile" accept=".pdf" style="display: none;">
-                        <div class="file-selected" id="fileName"></div>
-                    </div>
-                </div>
-
-                <div id="chapterSection" class="field" style="display: none;">
-                    <label class="field-label">Chapter or topic description</label>
-                    <textarea class="field-textarea" id="chapterContent" 
-                        placeholder="Describe the subject in detail. For example: Chapter 6 — Photosynthesis. The biochemical process by which plants convert light energy into chemical energy."></textarea>
-                </div>
-            </div>
-
-            <div class="section">
-                <div class="section-header">
                     <h2 class="section-title">Educational context</h2>
-                    <p class="section-subtitle">Select board, class, subject, and chapter to calibrate question complexity.</p>
+                    <p class="section-subtitle">Select board, class, subject, and chapter to define your quiz.</p>
                 </div>
 
                 <div class="field-group two-col">
@@ -1093,6 +1071,34 @@
                         </select>
                         <input type="text" class="field-input" id="chapterCustom" placeholder="Enter chapter name (e.g., Photosynthesis)" style="display: none;">
                     </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-header">
+                    <h2 class="section-title">Source material <span class="section-optional">optional</span></h2>
+                    <p class="section-subtitle">Upload a PDF to base questions on specific content. If skipped, questions are generated from the chapter name.</p>
+                </div>
+
+                <div id="pdfSection" class="field">
+                    <div class="upload-zone" id="dropZone">
+                        <div class="upload-icon">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                            </svg>
+                        </div>
+                        <div class="upload-text">Drop a PDF or click to browse</div>
+                        <div class="upload-hint">Up to 5MB · Text-based PDFs work best</div>
+                        <input type="file" id="pdfFile" accept=".pdf" style="display: none;">
+                        <div class="file-selected" id="fileName"></div>
+                    </div>
+                </div>
+
+                <!-- Hidden legacy fields to avoid breaking JS -->
+                <textarea id="chapterContent" style="display: none;"></textarea>
+                <div style="display: none;">
+                    <input type="radio" name="inputMode" id="modePDF" value="pdf" checked>
+                    <input type="radio" name="inputMode" id="modeChapter" value="chapter">
                 </div>
             </div>
 
@@ -1318,13 +1324,6 @@
         // Initialize on page load
         updateSubjects();
 
-        document.querySelectorAll('input[name="inputMode"]').forEach(radio => {
-            radio.addEventListener('change', (e) => {
-                document.getElementById('pdfSection').style.display = e.target.value === 'pdf' ? 'block' : 'none';
-                document.getElementById('chapterSection').style.display = e.target.value === 'chapter' ? 'block' : 'none';
-            });
-        });
-
         const numInput = document.getElementById('numQuestions');
         document.getElementById('numMinus').addEventListener('click', () => {
             const val = parseInt(numInput.value) || 10;
@@ -1366,11 +1365,14 @@
             const quizDisplay = document.getElementById('quizDisplay');
             errorMessage.classList.remove('active');
 
-            const inputMode = document.querySelector('input[name="inputMode"]:checked').value;
-            if (inputMode === 'pdf' && !uploadedFile) { showError('Please upload a PDF file.'); return; }
-            if (inputMode === 'chapter' && !document.getElementById('chapterContent').value.trim()) {
-                showError('Please describe the topic.'); return;
-            }
+            // Validate: must have subject + chapter selected
+            const subject = subjectSelect.value;
+            const chapterName = chapterSelect.style.display !== 'none' 
+                ? chapterSelect.value 
+                : chapterCustom.value.trim();
+
+            if (!subject) { showError('Please select a subject.'); return; }
+            if (!chapterName) { showError('Please select or enter a chapter.'); return; }
 
             const questionTypes = getCheckedValues(['typeMCQ', 'typeSCQ', 'typeTrueFalse', 'typeSubjective']);
             if (questionTypes.length === 0) { showError('Select at least one question format.'); return; }
@@ -1385,22 +1387,15 @@
 
             try {
                 let pdfBase64 = null;
-                let textContent = null;
-                if (inputMode === 'pdf') pdfBase64 = await fileToBase64(uploadedFile);
-                else textContent = document.getElementById('chapterContent').value;
-
-                // Get chapter info (dropdown or custom)
-                const subject = subjectSelect.value;
-                const chapterName = chapterSelect.style.display !== 'none' 
-                    ? chapterSelect.value 
-                    : chapterCustom.value;
-
-                // Prepend chapter context to textContent for better AI output
-                if (textContent && chapterName) {
-                    textContent = `Subject: ${subject}\nChapter: ${chapterName}\n\n${textContent}`;
-                } else if (!textContent && chapterName && inputMode === 'chapter') {
-                    textContent = `Subject: ${subject}\nChapter: ${chapterName}`;
+                // PDF is optional
+                if (uploadedFile) {
+                    pdfBase64 = await fileToBase64(uploadedFile);
                 }
+
+                // Build textContent from chapter info (always)
+                const board = document.getElementById('boardSelect').value;
+                const classLevel = document.getElementById('classSelect').value;
+                const textContent = `Generate quiz questions for:\nBoard: ${board}\nClass: ${classLevel}\nSubject: ${subject}\nChapter: ${chapterName}`;
 
                 const response = await fetch(API_ENDPOINT, {
                     method: 'POST',
@@ -1409,10 +1404,8 @@
                         pdfBase64, textContent,
                         numQuestions: numInput.value,
                         questionTypes, difficulties, bloomLevels,
-                        board: document.getElementById('boardSelect').value,
-                        classLevel: document.getElementById('classSelect').value,
-                        subject: subject,
-                        chapter: chapterName
+                        board, classLevel,
+                        subject, chapter: chapterName
                     })
                 });
 
@@ -1548,41 +1541,23 @@
         // Generate filename as Chapter_Class format (e.g., "Photosynthesis_Class10")
         function getExportFilename() {
             const classValue = document.getElementById('classSelect').value;
-            const boardValue = document.getElementById('boardSelect').value;
-            const inputMode = document.querySelector('input[name="inputMode"]:checked').value;
             
             // Clean helper - remove special chars, keep only alphanumerics and underscores
             const clean = (str) => String(str || '')
                 .trim()
-                .replace(/[^a-zA-Z0-9\s]/g, '')  // remove special chars
-                .replace(/\s+/g, '_')             // spaces to underscores
-                .replace(/_+/g, '_')              // collapse multiple underscores
-                .replace(/^_|_$/g, '');           // trim underscores
+                .replace(/[^a-zA-Z0-9\s]/g, '')
+                .replace(/\s+/g, '_')
+                .replace(/_+/g, '_')
+                .replace(/^_|_$/g, '');
             
-            // Format class (e.g., "10" becomes "Class10", "College" stays as "College")
-            const classFormatted = /^\d+$/.test(classValue) ? `Class${classValue}` : clean(classValue);
+            const classFormatted = `Class${classValue}`;
             
-            // Priority 1: Use selected chapter from dropdown
-            let chapterName = '';
+            // Get chapter name from dropdown or custom input
             const selectedChapter = chapterSelect.style.display !== 'none' 
                 ? chapterSelect.value 
                 : chapterCustom.value;
             
-            if (selectedChapter) {
-                chapterName = clean(selectedChapter);
-            }
-            // Priority 2: Fall back to PDF filename or first words of description
-            else if (inputMode === 'pdf' && uploadedFile) {
-                chapterName = clean(uploadedFile.name.replace(/\.pdf$/i, ''));
-            } else if (inputMode === 'chapter') {
-                const content = document.getElementById('chapterContent').value.trim();
-                const firstLine = content.split(/[\n.!?]/)[0];
-                const words = firstLine.split(/\s+/).slice(0, 5).join(' ');
-                chapterName = clean(words);
-            }
-            
-            // Fallback if chapter name is empty
-            if (!chapterName) chapterName = 'Quiz';
+            let chapterName = clean(selectedChapter) || 'Quiz';
             
             // Limit length
             if (chapterName.length > 50) chapterName = chapterName.substring(0, 50);
