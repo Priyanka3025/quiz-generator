@@ -1667,11 +1667,94 @@
 
         document.getElementById('exportJSON').addEventListener('click', () => {
             if (!generatedQuiz) return;
-            const rows = quizToTableFormat(generatedQuiz);
+            
+            // Get metadata from form
+            const classValue = document.getElementById('classSelect').value;
+            const subject = subjectSelect.value || 'N/A';
+            const selectedChapter = chapterSelect.style.display !== 'none' 
+                ? chapterSelect.value 
+                : chapterCustom.value;
+            const chapter = selectedChapter || 'N/A';
+            
+            // Build title from chapter + class
+            const title = `${chapter} — Class ${classValue}`;
+            
+            // Format questions in the template structure
+            const questions = generatedQuiz.questions.map(q => {
+                const options = q.options || [];
+                const getCleanOption = (idx) => {
+                    if (!options[idx]) return '';
+                    return String(options[idx]).replace(/^[A-D]\)\s*/i, '').trim();
+                };
+                
+                // Build clean options array (strip A) B) C) D) prefixes)
+                const cleanOptions = [];
+                const optionImages = [];
+                
+                if (q.type === 'TrueFalse') {
+                    cleanOptions.push('True', 'False');
+                    optionImages.push('', '');
+                } else if (q.type === 'Subjective') {
+                    // No options for subjective
+                } else {
+                    // MCQ / SCQ - always 4 options
+                    for (let i = 0; i < 4; i++) {
+                        cleanOptions.push(getCleanOption(i));
+                        optionImages.push('');
+                    }
+                }
+                
+                // Determine Answer (full text) and Answer_Key (A/B/C/D)
+                let answerText = '';
+                let answerKey = '';
+
+                if (q.type === 'Subjective') {
+                    answerText = q.modelAnswer || q.correctAnswer || '';
+                    answerKey = 'N/A';
+                } else if (q.type === 'TrueFalse') {
+                    answerText = q.correctAnswer || '';
+                    answerKey = answerText.toLowerCase().includes('true') ? 'A' : 'B';
+                } else {
+                    const correctClean = String(q.correctAnswer || '').replace(/^[A-D]\)\s*/i, '').trim();
+                    answerText = correctClean;
+                    const optA = getCleanOption(0);
+                    const optB = getCleanOption(1);
+                    const optC = getCleanOption(2);
+                    const optD = getCleanOption(3);
+                    
+                    if (correctClean === optA) answerKey = 'A';
+                    else if (correctClean === optB) answerKey = 'B';
+                    else if (correctClean === optC) answerKey = 'C';
+                    else if (correctClean === optD) answerKey = 'D';
+                    else {
+                        const keyMatch = String(q.correctAnswer || '').match(/^([A-D])/i);
+                        answerKey = keyMatch ? keyMatch[1].toUpperCase() : '';
+                    }
+                }
+                
+                return {
+                    "Question": q.question || '',
+                    "Question_Images": [""],
+                    "Options": cleanOptions,
+                    "Option_Images": optionImages,
+                    "Answer": answerText,
+                    "Answer_Key": answerKey,
+                    "Solution": q.explanation || q.modelAnswer || '',
+                    "Solution_Images": [""],
+                    "Difficulty_Level": q.difficulty || '',
+                    "Bloom_Taxonomy_Level": q.bloomLevel || ''
+                };
+            });
+            
             const exportData = {
-                metadata: { generatedAt: new Date().toISOString(), totalQuestions: rows.length, columns: HEADERS },
-                questions: rows
+                "Title": title,
+                "Class": classValue,
+                "Subject": subject,
+                "Chapter": chapter,
+                "Topic": chapter,
+                "Questions": questions
             };
+            
             const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
             downloadBlob(blob, `${getExportFilename()}.json`);
         });
