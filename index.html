@@ -1462,6 +1462,33 @@
                 }
 
                 const quiz = await response.json();
+                
+                // Safety filter: remove questions with types not in user's selection
+                if (quiz.questions && Array.isArray(quiz.questions)) {
+                    const originalCount = quiz.questions.length;
+                    quiz.questions = quiz.questions.filter(q => {
+                        const matchesType = questionTypes.includes(q.type);
+                        const matchesDifficulty = difficulties.includes(q.difficulty);
+                        const matchesBloom = bloomLevels.includes(q.bloomLevel);
+                        return matchesType && matchesDifficulty && matchesBloom;
+                    });
+                    
+                    // Renumber questions after filtering
+                    quiz.questions.forEach((q, idx) => {
+                        q.questionNumber = idx + 1;
+                    });
+                    
+                    // Warn if significant mismatch occurred
+                    if (quiz.questions.length < originalCount) {
+                        console.warn(`Filtered ${originalCount - quiz.questions.length} questions that didn't match selected criteria`);
+                    }
+                    
+                    // If AI completely ignored our rules, show an error
+                    if (quiz.questions.length === 0) {
+                        throw new Error('The AI generated questions that didn\'t match your selections. Please try again.');
+                    }
+                }
+                
                 generatedQuiz = quiz;
                 displayQuiz(quiz);
                 quizDisplay.classList.add('active');
