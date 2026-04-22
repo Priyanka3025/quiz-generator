@@ -59,8 +59,8 @@ module.exports = async function handler(req, res) {
 
     parts.push({ text: prompt });
 
-    const MODEL = 'gemini-2.5-flash';
-    const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`;
+    // Try multiple models in order: Flash (best quality) → Flash-Lite (more reliable fallback)
+    const MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite'];
 
     const requestBody = {
       contents: [
@@ -76,19 +76,57 @@ module.exports = async function handler(req, res) {
       }
     };
 
-    const response = await fetch(GEMINI_ENDPOINT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestBody)
-    });
+    // Attempt each model, retry on overload errors
+    let response = null;
+    let lastErrorText = '';
+    let lastStatus = 0;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Gemini API error:', errorText);
+    for (const model of MODELS) {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-      let errorMessage = `Gemini API error: ${response.statusText}`;
+      // Try up to 2 times per model (with short delay between)
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+          response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
+          });
+
+          if (response.ok) {
+            console.log(`Success with ${model} on attempt ${attempt}`);
+            break;
+          }
+
+          lastStatus = response.status;
+          lastErrorText = await response.text();
+          console.warn(`${model} attempt ${attempt} failed: ${response.status}`);
+
+          // If it's an overload (503) or rate limit (429), retry / try next model
+          // If it's a client error (400), don't bother retrying
+          if (response.status === 400 || response.status === 401 || response.status === 403) {
+            break; // skip to error handling
+          }
+
+          // Wait 1 second before retry
+          if (attempt < 2) {
+            await new Promise(r => setTimeout(r, 1000));
+          }
+        } catch (fetchErr) {
+          lastErrorText = fetchErr.message;
+          console.warn(`Fetch error for ${model}:`, fetchErr.message);
+        }
+      }
+
+      if (response && response.ok) break; // success, stop trying other models
+    }
+
+    if (!response || !response.ok) {
+      console.error('All models failed. Last error:', lastErrorText);
+
+      let errorMessage = `Gemini API error: ${lastStatus || 'Unknown'}`;
       try {
-        const errorData = JSON.parse(errorText);
+        const errorData = JSON.parse(lastErrorText);
         if (errorData.error && errorData.error.message) {
           errorMessage = errorData.error.message;
         }
@@ -96,13 +134,16 @@ module.exports = async function handler(req, res) {
         // ignore
       }
 
-      if (response.status === 429) {
-        errorMessage = 'Rate limit reached. Please wait a minute and try again. (Free tier: 10 requests/min, 250/day)';
-      } else if (response.status === 400 && errorMessage.indexOf('API key') !== -1) {
+      // Friendly error messages
+      if (lastStatus === 429) {
+        errorMessage = 'Rate limit reached. Please wait a minute and try again.';
+      } else if (lastStatus === 400 && errorMessage.indexOf('API key') !== -1) {
         errorMessage = 'Invalid API key. Please check your GEMINI_API_KEY in Vercel settings.';
+      } else if (lastStatus === 503 || errorMessage.toLowerCase().includes('overload') || errorMessage.toLowerCase().includes('high demand')) {
+        errorMessage = 'Gemini servers are currently overloaded. Please try again in a moment.';
       }
 
-      return res.status(response.status).json({ error: errorMessage });
+      return res.status(lastStatus || 500).json({ error: errorMessage });
     }
 
     const data = await response.json();
