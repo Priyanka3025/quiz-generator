@@ -232,10 +232,63 @@ function buildPrompt(config) {
   return `You are an expert educator creating an educational quiz. Generate exactly ${numQuestions} high-quality questions.
 
 ============================
-CRITICAL RULES — MUST FOLLOW
+RULE #0 — MOST IMPORTANT RULE
 ============================
 
-1. QUESTION TYPE RULE (MOST IMPORTANT):
+Each "question" field must contain ONLY the direct question itself. Nothing else.
+
+The question must be a pure, standalone educational question that stands completely on its own — exactly as it would appear in a textbook, exam paper, or worksheet.
+
+The question field is ONLY for: the question itself.
+The question field is NOT for: any reference to where the information came from.
+
+DO NOT include ANY of the following phrases ANYWHERE in the question field:
+- "according to..."
+- "as mentioned..."
+- "as stated..."
+- "as highlighted..."
+- "as given..."
+- "as shown..."
+- "as per..."
+- "based on..."
+- "as described..."
+- "as explained..."
+- "as outlined..."
+- "as discussed..."
+- "as noted..."
+- "as written..."
+- "from the text/passage/PDF/document/content/chapter/paragraph/extract/source/article/lesson/book"
+- "in the text/passage/PDF/document/content/chapter/paragraph/extract/source/article/lesson/book"
+- "the text says", "the passage says", "the author says", "the document states"
+- "referring to..."
+- "following the..."
+- "highlighted in..."
+- "referenced in..."
+- Any mention of: text, passage, document, PDF, content, extract, chapter, paragraph, article, author, source, lesson, reading, material, above, below, given, provided
+- Any phrase that would not appear in a standard textbook question
+
+WRONG (these are all FORBIDDEN — do NOT do this):
+❌ "According to the text, what is photosynthesis?"
+❌ "What is photosynthesis, as mentioned in the passage?"
+❌ "What is the primary role of science in daily life, as highlighted in the text?"
+❌ "Why does a spoon look bent, based on the given content?"
+❌ "From the document, identify..."
+
+CORRECT (this is what you MUST do):
+✓ "What is photosynthesis?"
+✓ "What is the primary role of science in daily life?"
+✓ "Why does a spoon look bent when placed in water?"
+✓ "Identify the main function of..."
+
+THE TEST: Read each question aloud. If it sounds like it's referring to ANY external source, rewrite it as a pure question about the CONCEPT itself.
+
+You are generating questions as if writing a standalone exam paper. The student does NOT have access to "the text" or "the passage" — they must answer from their knowledge of the subject. Write every question accordingly.
+
+============================
+OTHER CRITICAL RULES
+============================
+
+1. QUESTION TYPE RULE:
    The "type" field in every question MUST be EXACTLY one of these values ONLY:
    ${config.questionTypes.map(t => `   - "${t}"`).join('\n')}
    
@@ -347,56 +400,6 @@ Examples:
 - "Find the derivative of f(x) = x^3 + 2x^2"
 
 ============================
-QUESTION STYLE RULES (MANDATORY)
-============================
-
-Every question MUST be STANDALONE and self-contained.
-
-✗ FORBIDDEN PHRASES — DO NOT USE THESE IN QUESTIONS:
-- "According to the text/passage/document/PDF/content..."
-- "As mentioned in the text/passage/document..."
-- "Based on the text/content/passage..."
-- "In the given extract/passage/text..."
-- "As stated in the text..."
-- "From the passage..."
-- "The author says..."
-- "The text mentions..."
-- "As per the document..."
-- "From the above/below..."
-- "Referring to the content..."
-- Any reference to "the text", "the passage", "the document", "the PDF", "the content", "the extract", "the chapter", "the paragraph", or similar meta-references.
-
-Questions should be phrased as general educational questions that a student could answer from their understanding of the TOPIC, NOT from referring back to a specific text.
-
-✓ GOOD question examples:
-- "What is photosynthesis?"
-- "How many bones are there in the adult human skeleton?"
-- "Explain the process of respiration in plants."
-- "Which of the following is a product of photosynthesis?"
-
-✗ BAD question examples (DO NOT DO THIS — meta-references anywhere in the sentence are FORBIDDEN):
-- "According to the text, what is photosynthesis?" ❌ (at start)
-- "What is photosynthesis, according to the text?" ❌ (at end — ALSO FORBIDDEN)
-- "Why does a spoon look bent in water, according to the passage?" ❌ (at end)
-- "As mentioned in the passage, how many bones..." ❌
-- "Based on the PDF, which option is correct?" ❌
-- "In the given extract, what is described?" ❌
-- "What, based on the content, is the role of chlorophyll?" ❌ (in middle)
-- "How does refraction work (as per the document)?" ❌ (parenthetical)
-
-REMEMBER: These meta-references are FORBIDDEN anywhere in the sentence — beginning, middle, or end. Just ask the direct question without any reference to the source material.
-
-CORRECT VERSIONS of the above bad examples:
-- "What is photosynthesis?"
-- "Why does a spoon look bent when placed in water?"
-- "How many bones are there in the human skeleton?"
-- "Which option correctly describes refraction?"
-- "What is the role of chlorophyll?"
-- "How does refraction work?"
-
-Think of it this way: the student should be able to answer the question on a blank piece of paper without having the source material in front of them. Ask questions about the CONCEPT, not about what the source says.
-
-============================
 ${config.textContent && config.textContent.includes('PDF CONTENT TO USE AS SOURCE') ? `CONTENT SCOPE RULE (CRITICAL)
 ============================
 
@@ -407,13 +410,13 @@ PDF content has been provided below. You MUST:
 3. If the PDF covers "Photosynthesis and Respiration", do NOT create questions about unrelated topics like "Genetics" or "Evolution" even if they belong to the same subject.
 4. Every question's answer must be derivable from or directly supported by the PDF content.
 5. Focus on the CONCEPTS in the PDF — not on wording or phrasing from the PDF.
-6. Phrase questions independently (following the STYLE RULES above) but keep the content scope limited to what the PDF covers.
+6. REMEMBER RULE #0: Write questions as pure standalone questions. Never reference "the PDF", "the text", "the passage", etc.
 
 Example:
 - If PDF covers: Photosynthesis, chlorophyll, light reactions, dark reactions
-- ✓ Good question: "What is the role of chlorophyll in photosynthesis?"
-- ✗ Bad question: "What is meiosis?" (not in the PDF!)
-- ✗ Bad question: "According to the passage, what does chlorophyll do?" (meta-reference!)
+- ✓ Good: "What is the role of chlorophyll in photosynthesis?"
+- ✗ Bad: "What is meiosis?" (not in the PDF!)
+- ✗ Bad: "According to the passage, what does chlorophyll do?" (violates Rule #0!)
 
 ============================
 CONTENT (USE THIS AS YOUR SCOPE)
@@ -459,5 +462,13 @@ For Subjective questions, use this structure instead:
   "modelAnswer": "Detailed model answer with key points explaining the concept thoroughly..."
 }
 
-FINAL REMINDER: Every question's "type" field MUST be one of [${allowedTypes}] — NOTHING else.${language !== 'English' ? ` All content (questions, options, answers, explanations) MUST be in ${language}.` : ''}`;
+FINAL REMINDERS BEFORE YOU GENERATE:
+
+1. RULE #0: Every "question" field must be a STANDALONE question. ZERO references to "the text", "passage", "document", "PDF", "content", "above", "highlighted", "mentioned", "stated", "according to", "based on", "as per", etc. Write questions as if for a standalone exam paper.
+
+2. Every question's "type" field MUST be one of [${allowedTypes}] — NOTHING else.${language !== 'English' ? `
+
+3. All content (questions, options, answers, explanations) MUST be in ${language}.` : ''}
+
+Now generate the JSON output.`;
 }
