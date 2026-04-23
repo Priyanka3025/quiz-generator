@@ -184,7 +184,7 @@ function buildPrompt(config) {
   const numQuestions = parseInt(config.numQuestions);
   const language = config.language || 'English';
   
-  // Calculate distribution guidance
+  // Calculate TYPE distribution
   let distributionNote = '';
   if (config.questionTypes.length === 1) {
     distributionNote = `ALL ${numQuestions} questions MUST be of type "${config.questionTypes[0]}". Do NOT include any other question type.`;
@@ -194,12 +194,42 @@ function buildPrompt(config) {
     distributionNote = `Distribute the ${numQuestions} questions roughly equally across ONLY these types: ${allowedTypes}. Approximately ${perType} questions per type${remainder > 0 ? ` (extra questions can go to any of the selected types)` : ''}.`;
   }
 
+  // Calculate DIFFICULTY distribution (balanced mix)
+  let difficultyDistribution = '';
+  const diffCount = config.difficulties.length;
+  if (diffCount === 1) {
+    difficultyDistribution = `ALL ${numQuestions} questions MUST be of difficulty "${config.difficulties[0]}".`;
+  } else {
+    const perDiff = Math.floor(numQuestions / diffCount);
+    const extraDiff = numQuestions % diffCount;
+    const diffBreakdown = config.difficulties.map((d, idx) => {
+      const count = perDiff + (idx < extraDiff ? 1 : 0);
+      return `${count} "${d}"`;
+    }).join(', ');
+    difficultyDistribution = `BALANCE the difficulty mix across all selected levels. Distribute approximately: ${diffBreakdown}. Do NOT generate all questions at one difficulty level — spread them evenly across: ${config.difficulties.join(', ')}.`;
+  }
+
+  // Calculate BLOOM'S distribution (balanced mix)
+  let bloomDistribution = '';
+  const bloomCount = config.bloomLevels.length;
+  if (bloomCount === 1) {
+    bloomDistribution = `ALL ${numQuestions} questions MUST be at Bloom's level "${config.bloomLevels[0]}".`;
+  } else {
+    const perBloom = Math.floor(numQuestions / bloomCount);
+    const extraBloom = numQuestions % bloomCount;
+    const bloomBreakdown = config.bloomLevels.map((b, idx) => {
+      const count = perBloom + (idx < extraBloom ? 1 : 0);
+      return `${count} "${b}"`;
+    }).join(', ');
+    bloomDistribution = `BALANCE the Bloom's Taxonomy levels across all selected. Distribute approximately: ${bloomBreakdown}. Spread cognitive levels evenly across: ${config.bloomLevels.join(', ')}.`;
+  }
+
   // Language instruction
   const languageNote = language === 'English' 
     ? '' 
     : `\n============================\nLANGUAGE REQUIREMENT (IMPORTANT)\n============================\n\nGenerate ALL content in ${language}. This includes:\n- The "question" field\n- All options in the "options" array\n- The "correctAnswer" field\n- The "explanation" field\n- The "modelAnswer" field (for Subjective questions)\n\nHowever, KEEP these fields in English:\n- "type" (e.g., "MCQ", "Subjective")\n- "difficulty" (e.g., "Easy", "Medium", "Hard")\n- "bloomLevel" (e.g., "Remember", "Understand")\n- "questionNumber"\n\nUse natural, grammatically correct ${language}. For technical/scientific terms, you may use English terminology where appropriate (e.g., "photosynthesis" is universally understood).\n`;
 
-  return `You are an expert educator creating an educational quiz. Generate exactly ${numQuestions} questions.
+  return `You are an expert educator creating an educational quiz. Generate exactly ${numQuestions} high-quality questions.
 
 ============================
 CRITICAL RULES — MUST FOLLOW
@@ -211,13 +241,17 @@ CRITICAL RULES — MUST FOLLOW
    
    ${distributionNote}
    
-   DO NOT create questions with any type not listed above. If "Subjective" is NOT in the list, do NOT create subjective/essay questions. If "MCQ" is NOT in the list, do NOT create multiple choice questions.
+   DO NOT create questions with any type not listed above.
 
-2. Difficulty levels allowed: ${config.difficulties.join(', ')}
-   Every question's "difficulty" field MUST be one of these values.
+2. DIFFICULTY DISTRIBUTION RULE:
+   Allowed difficulty values: ${config.difficulties.join(', ')}
+   
+   ${difficultyDistribution}
 
-3. Bloom's Taxonomy levels allowed: ${config.bloomLevels.join(', ')}
-   Every question's "bloomLevel" field MUST be one of these values.
+3. BLOOM'S TAXONOMY DISTRIBUTION RULE:
+   Allowed Bloom's values: ${config.bloomLevels.join(', ')}
+   
+   ${bloomDistribution}
 ${languageNote}
 ============================
 EDUCATIONAL CONTEXT
@@ -227,24 +261,67 @@ EDUCATIONAL CONTEXT
 - Language: ${language}
 
 ============================
+QUESTION QUALITY RULES (VERY IMPORTANT)
+============================
+
+For MCQ and SCQ questions, the 4 options MUST be:
+
+✓ GOOD MCQ OPTIONS (what you MUST do):
+- Each option is a meaningful, distinct concept or answer
+- All options should be plausible (not obviously wrong)
+- Options should be similar in length and style
+- Test actual understanding of the subject
+
+✗ BAD MCQ OPTIONS (what you MUST AVOID):
+- NEVER use Yes/No style: ["Yes", "No", "Maybe", "Not sure"] ❌
+- NEVER use True/False style: ["True", "False", "Cannot say", "Partially true"] ❌
+- NEVER use filler options: ["All of the above", "None of the above"] alone ❌
+- NEVER use nonsense distractors that no student would pick ❌
+
+Examples of GOOD MCQ options:
+
+Q: What is photosynthesis?
+A) Process of converting light energy into chemical energy in plants
+B) Process of breaking down glucose for energy
+C) Process of water absorption by plant roots
+D) Process of cell division in plant tissues
+
+Q: What is the value of 2x² + 3x - 5 when x = 2?
+A) 9
+B) 11
+C) 13
+D) 15
+
+Examples of BAD MCQ options (DO NOT DO THIS):
+
+Q: Is photosynthesis important?  ← This should be True/False, not MCQ!
+A) Yes
+B) No
+C) Maybe  
+D) Sometimes
+
+If a question naturally has only 2 answers (yes/no, true/false, right/wrong), make it a "TrueFalse" type instead of forcing 4 fake options.
+
+============================
 QUESTION FORMAT RULES
 ============================
 
-For each TYPE, follow these formats STRICTLY:
-
-• "MCQ" (Multiple Choice — multiple correct answers possible, but for simplicity treat as one):
+• "MCQ" (Multiple Choice):
   - MUST have "options" array with exactly 4 items: ["A) ...", "B) ...", "C) ...", "D) ..."]
+  - ALL 4 options must be substantive answers (NOT Yes/No/Maybe)
   - MUST have "correctAnswer" matching one of the options exactly
   - MUST have "explanation" field
 
-• "SCQ" (Single Choice — exactly one correct answer):
-  - Same format as MCQ: 4 options, one correct answer
+• "SCQ" (Single Choice):
+  - Same format as MCQ: 4 substantive options, one correct answer
+  - ALL 4 options must be substantive answers (NOT Yes/No/Maybe)
   - MUST have "explanation" field
 
 • "TrueFalse":
   - "options" MUST be exactly ["True", "False"] (keep these in English even if language is different)
   - "correctAnswer" MUST be exactly "True" or "False"
   - MUST have "explanation" field
+  - USE THIS when the question is inherently binary (yes/no, right/wrong)
 
 • "Subjective" (open-ended, essay-type):
   - MUST NOT have "options" field
