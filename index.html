@@ -1965,6 +1965,7 @@
                 
                 // Safety filter: remove questions with types/levels not in user's selection
                 // AND detect low-quality MCQs (Yes/No style)
+                // AND auto-clean meta-references like "According to the text..."
                 if (quiz.questions && Array.isArray(quiz.questions)) {
                     const originalCount = quiz.questions.length;
                     
@@ -1991,13 +1992,54 @@
                         // If 2+ options are Yes/No/Maybe style, it's a lazy MCQ
                         return matches >= 2;
                     };
+
+                    // Helper: clean meta-references from question text
+                    const cleanMetaReferences = (text) => {
+                        if (!text) return text;
+                        let cleaned = String(text);
+                        
+                        // List of meta-reference patterns to remove (case-insensitive)
+                        const patterns = [
+                            /^according to the (text|passage|document|pdf|content|extract|paragraph|chapter|author)[,:\s]+/i,
+                            /^as (mentioned|stated|described|explained|discussed|given|shown|indicated|noted) in the (text|passage|document|pdf|content|extract|paragraph|chapter)[,:\s]+/i,
+                            /^based on the (text|passage|document|pdf|content|extract|paragraph|chapter|above|information)[,:\s]+/i,
+                            /^in the (given|above|following|below) (text|passage|document|pdf|content|extract|paragraph)[,:\s]+/i,
+                            /^from the (text|passage|document|pdf|content|extract|paragraph|chapter|above|given)[,:\s]+/i,
+                            /^referring to the (text|passage|document|pdf|content|extract|paragraph)[,:\s]+/i,
+                            /^as per the (text|passage|document|pdf|content|extract|paragraph|chapter|author)[,:\s]+/i,
+                            /^the (text|passage|document|pdf|content|extract|author) (says|states|mentions|explains|describes|notes|indicates)[:\s]+/i,
+                            /\(according to the (text|passage|document|pdf|content|extract)\)/gi,
+                            /\s+as (mentioned|stated|given) (above|in the text|in the passage)/gi,
+                        ];
+                        
+                        patterns.forEach(pattern => {
+                            cleaned = cleaned.replace(pattern, '');
+                        });
+                        
+                        // Capitalize first letter after cleaning
+                        cleaned = cleaned.trim();
+                        if (cleaned.length > 0) {
+                            cleaned = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+                        }
+                        
+                        return cleaned;
+                    };
+
+                    // First, clean meta-references from all question texts and explanations
+                    quiz.questions.forEach(q => {
+                        if (q.question) q.question = cleanMetaReferences(q.question);
+                        if (q.explanation) q.explanation = cleanMetaReferences(q.explanation);
+                        if (q.modelAnswer) q.modelAnswer = cleanMetaReferences(q.modelAnswer);
+                    });
                     
                     quiz.questions = quiz.questions.filter(q => {
                         const matchesType = questionTypes.includes(q.type);
                         const matchesDifficulty = difficulties.includes(q.difficulty);
                         const matchesBloom = bloomLevels.includes(q.bloomLevel);
                         const notLazyMCQ = !isLazyMCQ(q);
-                        return matchesType && matchesDifficulty && matchesBloom && notLazyMCQ;
+                        // Also filter out questions that are TOO short after cleaning (were mostly meta-refs)
+                        const hasValidQuestion = q.question && q.question.trim().length > 10;
+                        return matchesType && matchesDifficulty && matchesBloom && notLazyMCQ && hasValidQuestion;
                     });
                     
                     // Renumber questions after filtering
