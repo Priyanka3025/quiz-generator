@@ -13,6 +13,13 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.8.2/docx.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        // Configure PDF.js worker
+        if (typeof pdfjsLib !== 'undefined') {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+    </script>
     
     <style>
         :root {
@@ -627,14 +634,18 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
-            margin-top: 12px;
-            padding: 6px 12px;
-            background: var(--bg-paper);
-            border: 1px solid var(--border);
-            border-radius: 6px;
+            margin-top: 14px;
+            padding: 10px 16px;
+            background: var(--success);
+            border: 1px solid transparent;
+            border-radius: 8px;
             font-size: 13px;
-            color: var(--success);
+            color: white;
             font-weight: 500;
+            max-width: 100%;
+            text-align: center;
+            line-height: 1.4;
+            transition: background 0.2s ease, color 0.2s ease;
         }
 
         .file-selected.visible {
@@ -1336,7 +1347,7 @@
                             </svg>
                         </div>
                         <div class="upload-text">Drop a PDF or click to browse</div>
-                        <div class="upload-hint">Up to 3MB · Text-based PDFs work best</div>
+                        <div class="upload-hint">Any size · Text is extracted automatically</div>
                         <input type="file" id="pdfFile" accept=".pdf" style="display: none;">
                         <div class="file-selected" id="fileName"></div>
                     </div>
@@ -1787,18 +1798,101 @@
         });
         pdfFile.addEventListener('change', (e) => { if (e.target.files[0]) handleFile(e.target.files[0]); });
 
-        function handleFile(file) {
-            // Vercel's serverless function has a 4.5MB payload limit.
-            // Base64 encoding increases file size by ~33%, so we cap at 3MB to be safe.
-            const MAX_SIZE = 3 * 1024 * 1024; // 3MB
+        let extractedPdfText = null;  // Will hold extracted text instead of raw PDF
+
+        async function handleFile(file) {
+            // Reset previous extraction
+            extractedPdfText = null;
+            uploadedFile = null;
+            
+            // Safety: cap at 50MB (super generous — any real PDF fits)
+            const MAX_SIZE = 50 * 1024 * 1024;
             if (file.size > MAX_SIZE) {
                 const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
-                showError(`PDF is ${sizeMB}MB — too large for processing. Please use a PDF under 3MB. Tip: You can skip the PDF and just use the chapter name instead.`);
+                showError(`PDF is ${sizeMB}MB — please use a file under 50MB.`);
                 return;
             }
-            uploadedFile = file;
-            fileName.textContent = `${file.name} · ${(file.size / 1024).toFixed(1)} KB`;
+            
+            // Show processing state
+            fileName.textContent = `⏳ Extracting text from ${file.name}…`;
             fileName.classList.add('visible');
+            fileName.style.background = 'var(--bg-subtle)';
+            fileName.style.color = 'var(--ink-muted)';
+            
+            try {
+                const text = await extractTextFromPDF(file);
+                
+                if (!text || text.trim().length < 50) {
+                    fileName.textContent = `⚠️ Could not extract text from ${file.name}. This may be a scanned/image PDF. Try a different file or use the chapter dropdown.`;
+                    fileName.style.background = 'var(--error-bg)';
+                    fileName.style.color = 'var(--error)';
+                    return;
+                }
+                
+                // Success
+                extractedPdfText = text;
+                uploadedFile = file;
+                
+                const wordCount = text.split(/\s+/).length;
+                const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+                fileName.textContent = `✓ ${file.name} · ${sizeMB}MB · ${wordCount.toLocaleString()} words extracted`;
+                fileName.style.background = 'var(--success)';
+                fileName.style.color = 'white';
+                
+                console.log(`Extracted ${text.length} characters (${wordCount} words) from PDF`);
+            } catch (error) {
+                console.error('PDF extraction failed:', error);
+                fileName.textContent = `❌ Could not read PDF: ${error.message}. Try a different file.`;
+                fileName.style.background = 'var(--error-bg)';
+                fileName.style.color = 'var(--error)';
+            }
+        }
+
+        async function extractTextFromPDF(file) {
+            // Ensure PDF.js is loaded
+            if (typeof pdfjsLib === 'undefined') {
+                throw new Error('PDF library not loaded. Please refresh the page.');
+            }
+            
+            // Read file as array buffer
+            const arrayBuffer = await file.arrayBuffer();
+            
+            // Load PDF document
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            const numPages = pdf.numPages;
+            
+            let fullText = '';
+            
+            // Extract text from each page
+            for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+                // Update progress indicator every 5 pages
+                if (pageNum % 5 === 0 || pageNum === numPages) {
+                    fileName.textContent = `⏳ Reading page ${pageNum} of ${numPages}…`;
+                }
+                
+                const page = await pdf.getPage(pageNum);
+                const textContent = await page.getTextContent();
+                
+                // Combine text items with spaces
+                const pageText = textContent.items
+                    .map(item => item.str)
+                    .join(' ')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+                
+                if (pageText) {
+                    fullText += pageText + '\n\n';
+                }
+            }
+            
+            // Limit to ~100,000 characters (~20,000 words) to stay within Gemini limits
+            const MAX_CHARS = 100000;
+            if (fullText.length > MAX_CHARS) {
+                console.warn(`Text truncated from ${fullText.length} to ${MAX_CHARS} chars`);
+                fullText = fullText.substring(0, MAX_CHARS) + '\n\n[Content truncated for processing...]';
+            }
+            
+            return fullText.trim();
         }
 
         document.getElementById('generateBtn').addEventListener('click', generateQuiz);
@@ -1831,23 +1925,24 @@
             quizDisplay.classList.remove('active');
 
             try {
-                let pdfBase64 = null;
-                // PDF is optional
-                if (uploadedFile) {
-                    pdfBase64 = await fileToBase64(uploadedFile);
-                }
-
-                // Build textContent from chapter info (always)
+                // Build textContent combining chapter info + extracted PDF text (if any)
                 const board = document.getElementById('boardSelect').value;
                 const classLevel = document.getElementById('classSelect').value;
                 const language = document.getElementById('languageSelect').value;
-                const textContent = `Generate quiz questions for:\nBoard: ${board}\nClass: ${classLevel}\nSubject: ${subject}\nChapter: ${chapterName}\nLanguage: ${language}`;
+                
+                let textContent = `Generate quiz questions for:\nBoard: ${board}\nClass: ${classLevel}\nSubject: ${subject}\nChapter: ${chapterName}\nLanguage: ${language}`;
+                
+                // If PDF was uploaded, append its extracted text content
+                if (extractedPdfText) {
+                    textContent += `\n\n============================\nPDF CONTENT TO USE AS SOURCE:\n============================\n${extractedPdfText}`;
+                }
 
                 const response = await fetch(API_ENDPOINT, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        pdfBase64, textContent,
+                        pdfBase64: null,  // No longer sending raw PDF
+                        textContent,
                         numQuestions: numInput.value,
                         questionTypes, difficulties, bloomLevels,
                         board, classLevel,
@@ -1859,7 +1954,7 @@
                 if (!response.ok) {
                     // Handle specific error codes with friendly messages
                     if (response.status === 413) {
-                        throw new Error('The PDF is too large to process. Please use a file under 3MB, or skip the PDF and use just the chapter name.');
+                        throw new Error('The content is too large. Please use a shorter PDF or skip the PDF.');
                     }
                     
                     const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
