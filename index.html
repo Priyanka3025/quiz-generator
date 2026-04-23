@@ -1336,7 +1336,7 @@
                             </svg>
                         </div>
                         <div class="upload-text">Drop a PDF or click to browse</div>
-                        <div class="upload-hint">Up to 5MB · Text-based PDFs work best</div>
+                        <div class="upload-hint">Up to 3MB · Text-based PDFs work best</div>
                         <input type="file" id="pdfFile" accept=".pdf" style="display: none;">
                         <div class="file-selected" id="fileName"></div>
                     </div>
@@ -1788,7 +1788,14 @@
         pdfFile.addEventListener('change', (e) => { if (e.target.files[0]) handleFile(e.target.files[0]); });
 
         function handleFile(file) {
-            if (file.size > 5 * 1024 * 1024) { showError('File exceeds 5MB limit.'); return; }
+            // Vercel's serverless function has a 4.5MB payload limit.
+            // Base64 encoding increases file size by ~33%, so we cap at 3MB to be safe.
+            const MAX_SIZE = 3 * 1024 * 1024; // 3MB
+            if (file.size > MAX_SIZE) {
+                const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+                showError(`PDF is ${sizeMB}MB — too large for processing. Please use a PDF under 3MB. Tip: You can skip the PDF and just use the chapter name instead.`);
+                return;
+            }
             uploadedFile = file;
             fileName.textContent = `${file.name} · ${(file.size / 1024).toFixed(1)} KB`;
             fileName.classList.add('visible');
@@ -1850,20 +1857,52 @@
                 });
 
                 if (!response.ok) {
+                    // Handle specific error codes with friendly messages
+                    if (response.status === 413) {
+                        throw new Error('The PDF is too large to process. Please use a file under 3MB, or skip the PDF and use just the chapter name.');
+                    }
+                    
                     const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
                     throw new Error(errorData.error || `Request failed: ${response.status}`);
                 }
 
                 const quiz = await response.json();
                 
-                // Safety filter: remove questions with types not in user's selection
+                // Safety filter: remove questions with types/levels not in user's selection
+                // AND detect low-quality MCQs (Yes/No style)
                 if (quiz.questions && Array.isArray(quiz.questions)) {
                     const originalCount = quiz.questions.length;
+                    
+                    // Helper: detect lazy MCQs with Yes/No/Maybe style options
+                    const isLazyMCQ = (q) => {
+                        if (q.type !== 'MCQ' && q.type !== 'SCQ') return false;
+                        if (!q.options || q.options.length < 2) return false;
+                        
+                        // Strip "A) " prefixes and lowercase
+                        const cleanOpts = q.options.map(o => 
+                            String(o).replace(/^[A-D]\)\s*/i, '').trim().toLowerCase()
+                        );
+                        
+                        // Red flag patterns
+                        const yesNoPatterns = ['yes', 'no', 'maybe', 'not sure', 'sometimes', 
+                                                'true', 'false', 'cannot say', 'partially true',
+                                                'partially false', 'sometimes true', 'don\'t know'];
+                        
+                        // Count how many options match the red flag patterns
+                        const matches = cleanOpts.filter(opt => 
+                            yesNoPatterns.includes(opt)
+                        ).length;
+                        
+                        // If 2+ options are Yes/No/Maybe style, it's a lazy MCQ
+                        return matches >= 2;
+                    };
+                    
                     quiz.questions = quiz.questions.filter(q => {
                         const matchesType = questionTypes.includes(q.type);
                         const matchesDifficulty = difficulties.includes(q.difficulty);
                         const matchesBloom = bloomLevels.includes(q.bloomLevel);
-                        return matchesType && matchesDifficulty && matchesBloom;
+                        const notLazyMCQ = !isLazyMCQ(q);
+                        return matchesType && matchesDifficulty && matchesBloom && notLazyMCQ;
                     });
                     
                     // Renumber questions after filtering
@@ -1873,12 +1912,17 @@
                     
                     // Warn if significant mismatch occurred
                     if (quiz.questions.length < originalCount) {
-                        console.warn(`Filtered ${originalCount - quiz.questions.length} questions that didn't match selected criteria`);
+                        console.warn(`Filtered ${originalCount - quiz.questions.length} low-quality or mismatched questions`);
                     }
                     
                     // If AI completely ignored our rules, show an error
                     if (quiz.questions.length === 0) {
                         throw new Error('The AI generated questions that didn\'t match your selections. Please try again.');
+                    }
+                    
+                    // Warn if lots of questions got filtered (might indicate poor quality generation)
+                    if (quiz.questions.length < originalCount * 0.6) {
+                        console.warn('Many questions were filtered out — consider regenerating.');
                     }
                 }
                 
