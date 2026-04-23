@@ -347,7 +347,69 @@ Examples:
 - "Find the derivative of f(x) = x^3 + 2x^2"
 
 ============================
-CONTENT
+QUESTION STYLE RULES (MANDATORY)
+============================
+
+Every question MUST be STANDALONE and self-contained.
+
+✗ FORBIDDEN PHRASES — DO NOT USE THESE IN QUESTIONS:
+- "According to the text/passage/document/PDF/content..."
+- "As mentioned in the text/passage/document..."
+- "Based on the text/content/passage..."
+- "In the given extract/passage/text..."
+- "As stated in the text..."
+- "From the passage..."
+- "The author says..."
+- "The text mentions..."
+- "As per the document..."
+- "From the above/below..."
+- "Referring to the content..."
+- Any reference to "the text", "the passage", "the document", "the PDF", "the content", "the extract", "the chapter", "the paragraph", or similar meta-references.
+
+Questions should be phrased as general educational questions that a student could answer from their understanding of the TOPIC, NOT from referring back to a specific text.
+
+✓ GOOD question examples:
+- "What is photosynthesis?"
+- "How many bones are there in the adult human skeleton?"
+- "Explain the process of respiration in plants."
+- "Which of the following is a product of photosynthesis?"
+
+✗ BAD question examples (DO NOT DO THIS):
+- "According to the text, what is photosynthesis?" ❌
+- "As mentioned in the passage, how many bones..." ❌
+- "Based on the PDF, which option is correct?" ❌
+- "In the given extract, what is described?" ❌
+
+Think of it this way: the student should be able to answer the question on a blank piece of paper without having the source material in front of them. Ask questions about the CONCEPT, not about what the source says.
+
+============================
+${config.textContent && config.textContent.includes('PDF CONTENT TO USE AS SOURCE') ? `CONTENT SCOPE RULE (CRITICAL)
+============================
+
+PDF content has been provided below. You MUST:
+
+1. Generate questions STRICTLY from concepts, facts, and topics covered in the provided PDF content ONLY.
+2. Do NOT use your general knowledge to create questions about topics that are NOT covered in the PDF.
+3. If the PDF covers "Photosynthesis and Respiration", do NOT create questions about unrelated topics like "Genetics" or "Evolution" even if they belong to the same subject.
+4. Every question's answer must be derivable from or directly supported by the PDF content.
+5. Focus on the CONCEPTS in the PDF — not on wording or phrasing from the PDF.
+6. Phrase questions independently (following the STYLE RULES above) but keep the content scope limited to what the PDF covers.
+
+Example:
+- If PDF covers: Photosynthesis, chlorophyll, light reactions, dark reactions
+- ✓ Good question: "What is the role of chlorophyll in photosynthesis?"
+- ✗ Bad question: "What is meiosis?" (not in the PDF!)
+- ✗ Bad question: "According to the passage, what does chlorophyll do?" (meta-reference!)
+
+============================
+CONTENT (USE THIS AS YOUR SCOPE)
+============================` : `CONTENT SCOPE
+============================
+
+Generate questions from your general knowledge about the specified subject/chapter. Keep questions relevant to what a student of that class/grade would be expected to know.
+
+============================
+CONTEXT`}
 ============================
 ${config.textContent || 'Generate questions from your general knowledge of this subject/chapter.'}
 
