@@ -1993,33 +1993,70 @@
                         return matches >= 2;
                     };
 
-                    // Helper: clean meta-references from question text
+                    // Helper: clean meta-references from question text (aggressive - anywhere in text)
                     const cleanMetaReferences = (text) => {
                         if (!text) return text;
                         let cleaned = String(text);
                         
-                        // List of meta-reference patterns to remove (case-insensitive)
+                        // Source words that indicate meta-references
+                        const sourceWords = '(?:text|passage|document|pdf|content|extract|paragraph|chapter|article|author|material|information|data)';
+                        
+                        // Patterns to remove — can appear ANYWHERE in the question
                         const patterns = [
-                            /^according to the (text|passage|document|pdf|content|extract|paragraph|chapter|author)[,:\s]+/i,
-                            /^as (mentioned|stated|described|explained|discussed|given|shown|indicated|noted) in the (text|passage|document|pdf|content|extract|paragraph|chapter)[,:\s]+/i,
-                            /^based on the (text|passage|document|pdf|content|extract|paragraph|chapter|above|information)[,:\s]+/i,
-                            /^in the (given|above|following|below) (text|passage|document|pdf|content|extract|paragraph)[,:\s]+/i,
-                            /^from the (text|passage|document|pdf|content|extract|paragraph|chapter|above|given)[,:\s]+/i,
-                            /^referring to the (text|passage|document|pdf|content|extract|paragraph)[,:\s]+/i,
-                            /^as per the (text|passage|document|pdf|content|extract|paragraph|chapter|author)[,:\s]+/i,
-                            /^the (text|passage|document|pdf|content|extract|author) (says|states|mentions|explains|describes|notes|indicates)[:\s]+/i,
-                            /\(according to the (text|passage|document|pdf|content|extract)\)/gi,
-                            /\s+as (mentioned|stated|given) (above|in the text|in the passage)/gi,
+                            // At start of sentence
+                            new RegExp(`^according to the ${sourceWords}[,:\\s]+`, 'gi'),
+                            new RegExp(`^as (?:mentioned|stated|described|explained|discussed|given|shown|indicated|noted|per) in the ${sourceWords}[,:\\s]+`, 'gi'),
+                            new RegExp(`^based on the ${sourceWords}[,:\\s]+`, 'gi'),
+                            new RegExp(`^in the (?:given|above|following|below) ${sourceWords}[,:\\s]+`, 'gi'),
+                            new RegExp(`^from the (?:given |above )?${sourceWords}[,:\\s]+`, 'gi'),
+                            new RegExp(`^referring to the ${sourceWords}[,:\\s]+`, 'gi'),
+                            new RegExp(`^as per the ${sourceWords}[,:\\s]+`, 'gi'),
+                            new RegExp(`^the ${sourceWords} (?:says|states|mentions|explains|describes|notes|indicates)[:\\s]+`, 'gi'),
+                            
+                            // In the MIDDLE or END of sentence (comma-separated phrases)
+                            // "X, according to the text?" → "X?"
+                            new RegExp(`[,]?\\s*according to the ${sourceWords}(?=[.?!]|$)`, 'gi'),
+                            new RegExp(`[,]?\\s*as (?:mentioned|stated|described|explained|discussed|given|shown|indicated|noted) in the ${sourceWords}(?=[.?!]|$)`, 'gi'),
+                            new RegExp(`[,]?\\s*based on the ${sourceWords}(?=[.?!]|$)`, 'gi'),
+                            new RegExp(`[,]?\\s*in the (?:given|above|following|below) ${sourceWords}(?=[.?!]|$)`, 'gi'),
+                            new RegExp(`[,]?\\s*from the (?:given |above )?${sourceWords}(?=[.?!]|$)`, 'gi'),
+                            new RegExp(`[,]?\\s*as per the ${sourceWords}(?=[.?!]|$)`, 'gi'),
+                            new RegExp(`[,]?\\s*referring to the ${sourceWords}(?=[.?!]|$)`, 'gi'),
+                            
+                            // Parenthetical meta-references
+                            new RegExp(`\\s*\\((?:according to|as per|based on|from|in) the ${sourceWords}\\)`, 'gi'),
+                            
+                            // Other common phrasings
+                            /\s*,?\s*as (?:mentioned|stated|given|shown|noted) above/gi,
+                            /\s*,?\s*as (?:mentioned|stated|given|shown|noted) earlier/gi,
+                            /\s*,?\s*as (?:mentioned|stated|given|shown|noted) before/gi,
+                            /\s*,?\s*as described (?:here|above|below|earlier|in the passage)/gi,
+                            /\s*,?\s*in the given (?:question|context|situation|scenario)/gi,
                         ];
                         
+                        // Apply all patterns
                         patterns.forEach(pattern => {
                             cleaned = cleaned.replace(pattern, '');
                         });
                         
-                        // Capitalize first letter after cleaning
+                        // Clean up resulting artifacts
                         cleaned = cleaned.trim();
+                        cleaned = cleaned.replace(/\s+/g, ' ');  // collapse multiple spaces
+                        cleaned = cleaned.replace(/\s+([.?!,])/g, '$1');  // remove space before punctuation
+                        cleaned = cleaned.replace(/^[,\s]+/, '');  // leading commas/spaces
+                        cleaned = cleaned.replace(/,(\s*)([.?!])/g, '$2');  // comma before sentence end
+                        
+                        // Capitalize first letter
                         if (cleaned.length > 0) {
                             cleaned = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+                        }
+                        
+                        // Ensure sentence ends with proper punctuation
+                        if (cleaned.length > 5 && !/[.?!]$/.test(cleaned)) {
+                            // If it was a question (started with What/How/Why/etc), add ?
+                            if (/^(what|how|why|when|where|who|which|does|is|are|can|will|should|would|could|do)/i.test(cleaned)) {
+                                cleaned += '?';
+                            }
                         }
                         
                         return cleaned;
