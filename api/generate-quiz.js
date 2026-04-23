@@ -374,11 +374,25 @@ Questions should be phrased as general educational questions that a student coul
 - "Explain the process of respiration in plants."
 - "Which of the following is a product of photosynthesis?"
 
-✗ BAD question examples (DO NOT DO THIS):
-- "According to the text, what is photosynthesis?" ❌
+✗ BAD question examples (DO NOT DO THIS — meta-references anywhere in the sentence are FORBIDDEN):
+- "According to the text, what is photosynthesis?" ❌ (at start)
+- "What is photosynthesis, according to the text?" ❌ (at end — ALSO FORBIDDEN)
+- "Why does a spoon look bent in water, according to the passage?" ❌ (at end)
 - "As mentioned in the passage, how many bones..." ❌
 - "Based on the PDF, which option is correct?" ❌
 - "In the given extract, what is described?" ❌
+- "What, based on the content, is the role of chlorophyll?" ❌ (in middle)
+- "How does refraction work (as per the document)?" ❌ (parenthetical)
+
+REMEMBER: These meta-references are FORBIDDEN anywhere in the sentence — beginning, middle, or end. Just ask the direct question without any reference to the source material.
+
+CORRECT VERSIONS of the above bad examples:
+- "What is photosynthesis?"
+- "Why does a spoon look bent when placed in water?"
+- "How many bones are there in the human skeleton?"
+- "Which option correctly describes refraction?"
+- "What is the role of chlorophyll?"
+- "How does refraction work?"
 
 Think of it this way: the student should be able to answer the question on a blank piece of paper without having the source material in front of them. Ask questions about the CONCEPT, not about what the source says.
 
