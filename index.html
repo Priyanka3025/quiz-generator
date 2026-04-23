@@ -977,12 +977,44 @@
             border-radius: var(--radius-lg);
             padding: 28px;
             margin-bottom: 12px;
-            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease, opacity 0.2s ease;
+            position: relative;
         }
 
         .question-card:hover {
             border-color: var(--ink-light);
             box-shadow: var(--shadow-sm);
+        }
+
+        .question-card.regenerating {
+            opacity: 0.55;
+            pointer-events: none;
+            border-color: var(--ink);
+        }
+
+        .question-card.regenerating::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 28px;
+            height: 28px;
+            margin-top: -14px;
+            margin-left: -14px;
+            border: 2.5px solid var(--border);
+            border-top-color: var(--ink);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            z-index: 10;
+        }
+
+        .question-card.just-regenerated {
+            animation: highlightPulse 1.5s ease;
+        }
+
+        @keyframes highlightPulse {
+            0%, 100% { background: var(--bg-paper); border-color: var(--border); }
+            30% { background: var(--accent-soft); border-color: var(--accent); box-shadow: 0 0 0 4px rgba(212, 165, 116, 0.15); }
         }
 
         .question-top {
@@ -1001,10 +1033,58 @@
             letter-spacing: -0.005em;
         }
 
+        .question-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
         .question-tags {
             display: flex;
             gap: 6px;
             flex-wrap: wrap;
+        }
+
+        .regen-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-family: var(--font);
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--ink-muted);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .regen-btn:hover {
+            border-color: var(--ink);
+            color: var(--ink);
+            background: var(--bg-subtle);
+        }
+
+        .regen-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .regen-btn svg {
+            flex-shrink: 0;
+            transition: transform 0.4s ease;
+        }
+
+        .regen-btn:hover svg {
+            transform: rotate(-90deg);
+        }
+
+        @media (max-width: 600px) {
+            .regen-btn span { display: none; }
+            .regen-btn { padding: 6px 8px; }
         }
 
         .tag {
@@ -2139,6 +2219,7 @@
             quiz.questions.forEach((q, idx) => {
                 const card = document.createElement('div');
                 card.className = 'question-card';
+                card.dataset.questionIndex = idx;
 
                 let optionsHTML = '';
                 if (q.options && q.options.length > 0) {
@@ -2157,10 +2238,18 @@
                 card.innerHTML = `
                     <div class="question-top">
                         <div class="question-number">Question ${q.questionNumber}</div>
-                        <div class="question-tags">
-                            <span class="tag tag-type">${escapeHTML(q.type)}</span>
-                            <span class="tag tag-difficulty">${escapeHTML(q.difficulty)}</span>
-                            <span class="tag tag-bloom">${escapeHTML(q.bloomLevel)}</span>
+                        <div class="question-actions">
+                            <div class="question-tags">
+                                <span class="tag tag-type">${escapeHTML(q.type)}</span>
+                                <span class="tag tag-difficulty">${escapeHTML(q.difficulty)}</span>
+                                <span class="tag tag-bloom">${escapeHTML(q.bloomLevel)}</span>
+                            </div>
+                            <button class="regen-btn" data-index="${idx}" title="Regenerate this question">
+                                <svg viewBox="0 0 16 16" width="13" height="13">
+                                    <path d="M1 4v6h6 M15 12V6H9 M3.51 9a5 5 0 017.54 1.74L15 10 M12.49 7a5 5 0 00-7.54-1.74L1 6" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                <span>Regenerate</span>
+                            </button>
                         </div>
                     </div>
                     <div class="question-text">${formatMath(q.question)}</div>
@@ -2169,6 +2258,125 @@
                 `;
                 container.appendChild(card);
             });
+
+            // Attach regenerate handlers
+            container.querySelectorAll('.regen-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const idx = parseInt(e.currentTarget.dataset.index);
+                    regenerateQuestion(idx);
+                });
+            });
+        }
+
+        // Regenerate a single question
+        async function regenerateQuestion(index) {
+            if (!generatedQuiz || !generatedQuiz.questions[index]) return;
+
+            const oldQuestion = generatedQuiz.questions[index];
+            const card = document.querySelector(`.question-card[data-question-index="${index}"]`);
+            const btn = card.querySelector('.regen-btn');
+            
+            // Show loading state on the card
+            card.classList.add('regenerating');
+            btn.disabled = true;
+            btn.querySelector('span').textContent = 'Regenerating…';
+
+            try {
+                // Get all current form values (same as generateQuiz)
+                const subject = subjectSelect.value;
+                const chapterName = chapterSelect.style.display !== 'none' 
+                    ? chapterSelect.value 
+                    : chapterCustom.value.trim();
+                const board = document.getElementById('boardSelect').value;
+                const classLevel = document.getElementById('classSelect').value;
+                const language = document.getElementById('languageSelect').value;
+                
+                let textContent = `Generate ONE quiz question for:\nBoard: ${board}\nClass: ${classLevel}\nSubject: ${subject}\nChapter: ${chapterName}\nLanguage: ${language}\n\nIMPORTANT: Generate a DIFFERENT question than this one (we want to replace it):\nOld question: "${oldQuestion.question}"\n\nThe new question must cover a DIFFERENT concept or angle from the old one. Do not repeat the same topic.`;
+                
+                if (extractedPdfText) {
+                    textContent += `\n\n============================\nPDF CONTENT TO USE AS SOURCE:\n============================\n${extractedPdfText}`;
+                }
+
+                const response = await fetch(API_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        pdfBase64: null,
+                        textContent,
+                        numQuestions: 1,  // Just 1 replacement question
+                        questionTypes: [oldQuestion.type],  // Same type as old
+                        difficulties: [oldQuestion.difficulty],  // Same difficulty
+                        bloomLevels: [oldQuestion.bloomLevel],  // Same Bloom level
+                        board, classLevel,
+                        subject, chapter: chapterName,
+                        language
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to regenerate. Please try again.');
+                }
+
+                const result = await response.json();
+                
+                if (result.questions && result.questions.length > 0) {
+                    let newQuestion = result.questions[0];
+                    
+                    // Apply the same cleaning as the main filter (meta-reference cleanup)
+                    const cleanMetaReferences = (text) => {
+                        if (!text) return text;
+                        let cleaned = String(text);
+                        const sourceWords = '(?:text|passage|document|pdf|content|extract|paragraph|chapter|article|author|material|information|data)';
+                        const patterns = [
+                            new RegExp(`^according to the ${sourceWords}[,:\\s]+`, 'gi'),
+                            new RegExp(`^as (?:mentioned|stated|described|explained|discussed|given|shown|indicated|noted|per) in the ${sourceWords}[,:\\s]+`, 'gi'),
+                            new RegExp(`^based on the ${sourceWords}[,:\\s]+`, 'gi'),
+                            new RegExp(`^in the (?:given|above|following|below) ${sourceWords}[,:\\s]+`, 'gi'),
+                            new RegExp(`^from the (?:given |above )?${sourceWords}[,:\\s]+`, 'gi'),
+                            new RegExp(`[,]?\\s*according to the ${sourceWords}(?=[.?!]|$)`, 'gi'),
+                            new RegExp(`[,]?\\s*as (?:mentioned|stated|described|explained|discussed|given|shown|indicated|noted) in the ${sourceWords}(?=[.?!]|$)`, 'gi'),
+                            new RegExp(`[,]?\\s*based on the ${sourceWords}(?=[.?!]|$)`, 'gi'),
+                            new RegExp(`\\s*\\((?:according to|as per|based on|from|in) the ${sourceWords}\\)`, 'gi'),
+                        ];
+                        patterns.forEach(p => { cleaned = cleaned.replace(p, ''); });
+                        cleaned = cleaned.trim().replace(/\s+/g, ' ').replace(/\s+([.?!,])/g, '$1').replace(/^[,\s]+/, '');
+                        if (cleaned.length > 0) cleaned = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+                        if (cleaned.length > 5 && !/[.?!]$/.test(cleaned) && /^(what|how|why|when|where|who|which|does|is|are|can|will|should|would|could|do)/i.test(cleaned)) cleaned += '?';
+                        return cleaned;
+                    };
+                    
+                    if (newQuestion.question) newQuestion.question = cleanMetaReferences(newQuestion.question);
+                    if (newQuestion.explanation) newQuestion.explanation = cleanMetaReferences(newQuestion.explanation);
+                    if (newQuestion.modelAnswer) newQuestion.modelAnswer = cleanMetaReferences(newQuestion.modelAnswer);
+                    
+                    // Preserve the original question number
+                    newQuestion.questionNumber = oldQuestion.questionNumber;
+                    
+                    // Replace in the quiz
+                    generatedQuiz.questions[index] = newQuestion;
+                    
+                    // Re-render the entire quiz display (keeping order)
+                    displayQuiz(generatedQuiz);
+                    
+                    // Scroll the new card into view smoothly
+                    const newCard = document.querySelector(`.question-card[data-question-index="${index}"]`);
+                    if (newCard) {
+                        newCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        // Briefly highlight the new question
+                        newCard.classList.add('just-regenerated');
+                        setTimeout(() => newCard.classList.remove('just-regenerated'), 1500);
+                    }
+                } else {
+                    throw new Error('No question returned');
+                }
+            } catch (error) {
+                console.error('Regenerate error:', error);
+                // Restore button state on error
+                card.classList.remove('regenerating');
+                btn.disabled = false;
+                btn.querySelector('span').textContent = 'Regenerate';
+                alert('Could not regenerate: ' + error.message);
+            }
         }
 
         function escapeHTML(str) {
