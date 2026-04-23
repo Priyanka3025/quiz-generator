@@ -386,6 +386,90 @@
             .preset-grid { grid-template-columns: repeat(2, 1fr); }
         }
 
+        /* ==================== ADVANCED SETTINGS TOGGLE ==================== */
+        .advanced-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 14px 16px;
+            background: var(--bg-subtle);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-family: var(--font);
+            text-align: left;
+            transition: all 0.15s ease;
+        }
+
+        .advanced-toggle:hover {
+            background: var(--bg-paper);
+            border-color: var(--ink-light);
+        }
+
+        .advanced-toggle.expanded {
+            background: var(--bg-paper);
+            border-color: var(--ink-light);
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+            border-bottom-color: var(--border-soft);
+        }
+
+        .advanced-toggle-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--ink-muted);
+            transition: transform 0.25s ease;
+            flex-shrink: 0;
+        }
+
+        .advanced-toggle.expanded .advanced-toggle-icon {
+            transform: rotate(180deg);
+        }
+
+        .advanced-toggle-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--ink);
+            letter-spacing: -0.01em;
+        }
+
+        .advanced-toggle-hint {
+            font-size: 13px;
+            color: var(--ink-muted);
+            margin-left: auto;
+        }
+
+        .advanced-panel {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.35s ease, padding 0.25s ease;
+            padding: 0 16px;
+            background: var(--bg-paper);
+            border: 1px solid transparent;
+            border-top: none;
+            border-radius: 0 0 var(--radius) var(--radius);
+        }
+
+        .advanced-panel.expanded {
+            max-height: 2000px;
+            padding: 24px 16px 8px;
+            border-color: var(--ink-light);
+            border-top: none;
+        }
+
+        @media (max-width: 900px) {
+            .advanced-toggle { flex-wrap: wrap; }
+            .advanced-toggle-hint { 
+                margin-left: 0; 
+                width: 100%; 
+                font-size: 12px; 
+                margin-top: 2px; 
+                padding-left: 22px; 
+            }
+        }
+
         .section-subtitle {
             font-size: 14px;
             color: var(--ink-muted);
@@ -1268,21 +1352,20 @@
 
             <div class="section">
                 <div class="section-header">
-                    <h2 class="section-title">Quiz parameters</h2>
-                    <p class="section-subtitle">Configure the composition, difficulty, and cognitive levels.</p>
+                    <h2 class="section-title">Quiz style</h2>
+                    <p class="section-subtitle">Pick a preset to auto-configure, or customize everything yourself.</p>
                 </div>
 
-                <div class="field-group" style="margin-bottom: 28px;">
+                <div class="field-group" style="margin-bottom: 24px;">
                     <div class="field">
-                        <label class="field-label">Quick presets <span class="field-hint">— click to auto-configure</span></label>
                         <div class="preset-grid">
-                            <button type="button" class="preset-card" data-preset="quick-test">
+                            <button type="button" class="preset-card active" data-preset="quick-test">
                                 <div class="preset-icon">
                                     <svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
                                 </div>
                                 <div class="preset-info">
                                     <div class="preset-title">Quick test</div>
-                                    <div class="preset-desc">10 MCQ · Easy–Medium · Recall</div>
+                                    <div class="preset-desc">10 MCQ · Easy–Medium</div>
                                 </div>
                             </button>
                             <button type="button" class="preset-card" data-preset="board-prep">
@@ -1291,7 +1374,7 @@
                                 </div>
                                 <div class="preset-info">
                                     <div class="preset-title">Board exam prep</div>
-                                    <div class="preset-desc">15 mixed · All difficulties · Full Bloom's</div>
+                                    <div class="preset-desc">15 mixed · All levels</div>
                                 </div>
                             </button>
                             <button type="button" class="preset-card" data-preset="revision">
@@ -1300,7 +1383,7 @@
                                 </div>
                                 <div class="preset-info">
                                     <div class="preset-title">Chapter revision</div>
-                                    <div class="preset-desc">10 mixed · Easy–Medium · Understand–Apply</div>
+                                    <div class="preset-desc">10 mixed · Understand–Apply</div>
                                 </div>
                             </button>
                             <button type="button" class="preset-card" data-preset="deep-thinking">
@@ -1309,7 +1392,7 @@
                                 </div>
                                 <div class="preset-info">
                                     <div class="preset-title">Critical thinking</div>
-                                    <div class="preset-desc">8 subjective · Medium–Hard · Analyze–Create</div>
+                                    <div class="preset-desc">8 subjective · Analyze–Create</div>
                                 </div>
                             </button>
                             <button type="button" class="preset-card" data-preset="concept-check">
@@ -1318,7 +1401,7 @@
                                 </div>
                                 <div class="preset-info">
                                     <div class="preset-title">Concept check</div>
-                                    <div class="preset-desc">5 True/False · Easy · Quick recall</div>
+                                    <div class="preset-desc">5 True/False · Quick recall</div>
                                 </div>
                             </button>
                             <button type="button" class="preset-card" data-preset="custom">
@@ -1327,51 +1410,62 @@
                                 </div>
                                 <div class="preset-info">
                                     <div class="preset-title">Custom</div>
-                                    <div class="preset-desc">Configure manually below</div>
+                                    <div class="preset-desc">Configure manually</div>
                                 </div>
                             </button>
                         </div>
                     </div>
                 </div>
 
-                <div class="field-group">
-                    <div class="field">
-                        <label class="field-label">Number of questions</label>
-                        <div class="number-control">
-                            <button type="button" class="number-btn" id="numMinus" aria-label="Decrease">−</button>
-                            <input type="number" id="numQuestions" min="1" max="30" value="10">
-                            <button type="button" class="number-btn" id="numPlus" aria-label="Increase">+</button>
-                        </div>
-                    </div>
+                <!-- Collapsible Advanced Settings -->
+                <button type="button" class="advanced-toggle" id="advancedToggle">
+                    <span class="advanced-toggle-icon">
+                        <svg viewBox="0 0 12 12" width="12" height="12"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+                    </span>
+                    <span class="advanced-toggle-label">Advanced settings</span>
+                    <span class="advanced-toggle-hint">Customize question types, difficulty, and Bloom's levels</span>
+                </button>
 
-                    <div class="field">
-                        <label class="field-label">Question formats</label>
-                        <div class="pill-group">
-                            <label class="pill"><input type="checkbox" id="typeMCQ" value="MCQ" checked><span class="pill-dot"></span>Multiple choice</label>
-                            <label class="pill"><input type="checkbox" id="typeSCQ" value="SCQ"><span class="pill-dot"></span>Single choice</label>
-                            <label class="pill"><input type="checkbox" id="typeTrueFalse" value="TrueFalse"><span class="pill-dot"></span>True / false</label>
-                            <label class="pill"><input type="checkbox" id="typeSubjective" value="Subjective"><span class="pill-dot"></span>Subjective</label>
+                <div class="advanced-panel" id="advancedPanel">
+                    <div class="field-group">
+                        <div class="field">
+                            <label class="field-label">Number of questions</label>
+                            <div class="number-control">
+                                <button type="button" class="number-btn" id="numMinus" aria-label="Decrease">−</button>
+                                <input type="number" id="numQuestions" min="1" max="30" value="10">
+                                <button type="button" class="number-btn" id="numPlus" aria-label="Increase">+</button>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="field">
-                        <label class="field-label">Difficulty levels</label>
-                        <div class="pill-group">
-                            <label class="pill"><input type="checkbox" id="diffEasy" value="Easy" checked><span class="pill-dot"></span>Easy</label>
-                            <label class="pill"><input type="checkbox" id="diffMedium" value="Medium" checked><span class="pill-dot"></span>Medium</label>
-                            <label class="pill"><input type="checkbox" id="diffHard" value="Hard"><span class="pill-dot"></span>Hard</label>
+                        <div class="field">
+                            <label class="field-label">Question formats</label>
+                            <div class="pill-group">
+                                <label class="pill"><input type="checkbox" id="typeMCQ" value="MCQ" checked><span class="pill-dot"></span>Multiple choice</label>
+                                <label class="pill"><input type="checkbox" id="typeSCQ" value="SCQ"><span class="pill-dot"></span>Single choice</label>
+                                <label class="pill"><input type="checkbox" id="typeTrueFalse" value="TrueFalse"><span class="pill-dot"></span>True / false</label>
+                                <label class="pill"><input type="checkbox" id="typeSubjective" value="Subjective"><span class="pill-dot"></span>Subjective</label>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="field">
-                        <label class="field-label">Bloom's Taxonomy levels</label>
-                        <div class="pill-group">
-                            <label class="pill"><input type="checkbox" id="bloomRemember" value="Remember" checked><span class="pill-dot"></span>Remember</label>
-                            <label class="pill"><input type="checkbox" id="bloomUnderstand" value="Understand" checked><span class="pill-dot"></span>Understand</label>
-                            <label class="pill"><input type="checkbox" id="bloomApply" value="Apply"><span class="pill-dot"></span>Apply</label>
-                            <label class="pill"><input type="checkbox" id="bloomAnalyze" value="Analyze"><span class="pill-dot"></span>Analyze</label>
-                            <label class="pill"><input type="checkbox" id="bloomEvaluate" value="Evaluate"><span class="pill-dot"></span>Evaluate</label>
-                            <label class="pill"><input type="checkbox" id="bloomCreate" value="Create"><span class="pill-dot"></span>Create</label>
+                        <div class="field">
+                            <label class="field-label">Difficulty levels</label>
+                            <div class="pill-group">
+                                <label class="pill"><input type="checkbox" id="diffEasy" value="Easy" checked><span class="pill-dot"></span>Easy</label>
+                                <label class="pill"><input type="checkbox" id="diffMedium" value="Medium" checked><span class="pill-dot"></span>Medium</label>
+                                <label class="pill"><input type="checkbox" id="diffHard" value="Hard"><span class="pill-dot"></span>Hard</label>
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label class="field-label">Bloom's Taxonomy levels</label>
+                            <div class="pill-group">
+                                <label class="pill"><input type="checkbox" id="bloomRemember" value="Remember" checked><span class="pill-dot"></span>Remember</label>
+                                <label class="pill"><input type="checkbox" id="bloomUnderstand" value="Understand" checked><span class="pill-dot"></span>Understand</label>
+                                <label class="pill"><input type="checkbox" id="bloomApply" value="Apply"><span class="pill-dot"></span>Apply</label>
+                                <label class="pill"><input type="checkbox" id="bloomAnalyze" value="Analyze"><span class="pill-dot"></span>Analyze</label>
+                                <label class="pill"><input type="checkbox" id="bloomEvaluate" value="Evaluate"><span class="pill-dot"></span>Evaluate</label>
+                                <label class="pill"><input type="checkbox" id="bloomCreate" value="Create"><span class="pill-dot"></span>Create</label>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1632,6 +1726,24 @@
             });
         }
 
+        // Advanced settings toggle
+        const advancedToggle = document.getElementById('advancedToggle');
+        const advancedPanel = document.getElementById('advancedPanel');
+
+        function setAdvancedExpanded(expanded) {
+            if (expanded) {
+                advancedToggle.classList.add('expanded');
+                advancedPanel.classList.add('expanded');
+            } else {
+                advancedToggle.classList.remove('expanded');
+                advancedPanel.classList.remove('expanded');
+            }
+        }
+
+        advancedToggle.addEventListener('click', () => {
+            setAdvancedExpanded(!advancedToggle.classList.contains('expanded'));
+        });
+
         document.querySelectorAll('.preset-card').forEach(card => {
             card.addEventListener('click', () => {
                 // Remove active state from all
@@ -1640,8 +1752,16 @@
                 card.classList.add('active');
                 // Apply the preset
                 applyPreset(card.dataset.preset);
+                
+                // Auto-expand advanced panel when "Custom" is clicked
+                if (card.dataset.preset === 'custom') {
+                    setAdvancedExpanded(true);
+                }
             });
         });
+
+        // Apply the default preset (Quick test) on page load
+        applyPreset('quick-test');
 
         document.getElementById('numMinus').addEventListener('click', () => {
             const val = parseInt(numInput.value) || 10;
