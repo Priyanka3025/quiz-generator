@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QuizGen — AI quiz generator for educators</title>
-    <meta name="description" content="Generate intelligent quizzes from any PDF or topic. Aligned with Bloom's Taxonomy.">
+    <meta name="description" content="Generate intelligent quizzes from any PDF, video subtitles, or topic. Aligned with Bloom's Taxonomy.">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1296,7 +1296,7 @@
             AI quiz generator for educators
         </div>
         <h1 class="hero-title">
-            Generate thoughtful quizzes <span class="hero-title-accent">from any PDF or topic.</span>
+            Generate thoughtful quizzes <span class="hero-title-accent">from PDFs, video subtitles, or any topic.</span>
         </h1>
         <p class="hero-subtitle">
             Calibrated by difficulty. Aligned with Bloom's Taxonomy. Exported in any format you need. Free for educators.
@@ -1416,7 +1416,7 @@
             <div class="section">
                 <div class="section-header">
                     <h2 class="section-title">Source material <span class="section-optional">optional</span></h2>
-                    <p class="section-subtitle">Upload a PDF to base questions on specific content. If skipped, questions are generated from the chapter name.</p>
+                    <p class="section-subtitle">Upload a PDF, video subtitles (.vtt/.srt), or both. If skipped, questions are generated from the chapter name.</p>
                 </div>
 
                 <div id="pdfSection" class="field">
@@ -1430,6 +1430,22 @@
                         <div class="upload-hint">Any size · Text is extracted automatically</div>
                         <input type="file" id="pdfFile" accept=".pdf" style="display: none;">
                         <div class="file-selected" id="fileName"></div>
+                    </div>
+                </div>
+
+                <div class="field" style="margin-top: 16px;">
+                    <div class="upload-zone" id="subtitleDropZone">
+                        <div class="upload-icon">
+                            <svg viewBox="0 0 24 24">
+                                <rect x="2" y="6" width="20" height="14" rx="2"/>
+                                <path d="M6 12h2 M11 12h7 M6 16h4 M14 16h4"/>
+                                <path d="M2 6l10-4 10 4"/>
+                            </svg>
+                        </div>
+                        <div class="upload-text">Drop subtitles or click to browse</div>
+                        <div class="upload-hint">.vtt or .srt files · From YouTube, Zoom, or any video</div>
+                        <input type="file" id="subtitleFile" accept=".vtt,.srt" style="display: none;">
+                        <div class="file-selected" id="subtitleFileName"></div>
                     </div>
                 </div>
 
@@ -1975,6 +1991,153 @@
             return fullText.trim();
         }
 
+        // ============================================================
+        // SUBTITLE FILE HANDLING (.vtt and .srt)
+        // ============================================================
+        const subtitleDropZone = document.getElementById('subtitleDropZone');
+        const subtitleFile = document.getElementById('subtitleFile');
+        const subtitleFileName = document.getElementById('subtitleFileName');
+        let extractedSubtitleText = null;
+
+        subtitleDropZone.addEventListener('click', () => subtitleFile.click());
+        subtitleDropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            subtitleDropZone.classList.add('drag-over');
+        });
+        subtitleDropZone.addEventListener('dragleave', () => subtitleDropZone.classList.remove('drag-over'));
+        subtitleDropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            subtitleDropZone.classList.remove('drag-over');
+            const file = e.dataTransfer.files[0];
+            if (file && (file.name.endsWith('.vtt') || file.name.endsWith('.srt'))) {
+                handleSubtitleFile(file);
+            }
+        });
+        subtitleFile.addEventListener('change', (e) => {
+            if (e.target.files[0]) handleSubtitleFile(e.target.files[0]);
+        });
+
+        async function handleSubtitleFile(file) {
+            extractedSubtitleText = null;
+
+            // Check size (subtitles should be small)
+            const MAX_SIZE = 10 * 1024 * 1024; // 10MB is way more than any subtitle file
+            if (file.size > MAX_SIZE) {
+                const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+                showError(`Subtitle file is ${sizeMB}MB — please use a file under 10MB.`);
+                return;
+            }
+
+            // Show processing
+            subtitleFileName.textContent = `⏳ Reading ${file.name}…`;
+            subtitleFileName.classList.add('visible');
+            subtitleFileName.style.background = 'var(--bg-subtle)';
+            subtitleFileName.style.color = 'var(--ink-muted)';
+
+            try {
+                const rawText = await file.text();
+                const isVTT = file.name.toLowerCase().endsWith('.vtt') || rawText.trim().startsWith('WEBVTT');
+                const cleanedText = parseSubtitles(rawText, isVTT);
+
+                if (!cleanedText || cleanedText.trim().length < 50) {
+                    subtitleFileName.textContent = `⚠️ Could not extract enough content from ${file.name}. The file may be empty or corrupted.`;
+                    subtitleFileName.style.background = 'var(--error-bg)';
+                    subtitleFileName.style.color = 'var(--error)';
+                    return;
+                }
+
+                extractedSubtitleText = cleanedText;
+                const wordCount = cleanedText.split(/\s+/).length;
+                const sizeKB = (file.size / 1024).toFixed(1);
+                subtitleFileName.textContent = `✓ ${file.name} · ${sizeKB}KB · ${wordCount.toLocaleString()} words extracted`;
+                subtitleFileName.style.background = 'var(--success)';
+                subtitleFileName.style.color = 'white';
+                console.log(`Extracted ${cleanedText.length} characters (${wordCount} words) from subtitles`);
+            } catch (error) {
+                console.error('Subtitle parsing failed:', error);
+                subtitleFileName.textContent = `❌ Could not read subtitle file: ${error.message}`;
+                subtitleFileName.style.background = 'var(--error-bg)';
+                subtitleFileName.style.color = 'var(--error)';
+            }
+        }
+
+        function parseSubtitles(rawText, isVTT) {
+            // Step 1: Remove BOM and normalize line endings
+            let text = rawText.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+            // Step 2: Remove WEBVTT header and metadata blocks (NOTE, STYLE, REGION)
+            if (isVTT) {
+                text = text.replace(/^WEBVTT[^\n]*\n/i, '');
+                // Remove NOTE blocks
+                text = text.replace(/^NOTE[\s\S]*?(?=\n\n|\n*$)/gm, '');
+                // Remove STYLE blocks
+                text = text.replace(/^STYLE[\s\S]*?(?=\n\n|\n*$)/gm, '');
+                // Remove REGION blocks
+                text = text.replace(/^REGION[\s\S]*?(?=\n\n|\n*$)/gm, '');
+            }
+
+            // Step 3: Split into blocks (separated by blank lines)
+            const blocks = text.split(/\n\s*\n/);
+            const lines = [];
+
+            blocks.forEach(block => {
+                const blockLines = block.split('\n').map(l => l.trim()).filter(l => l);
+                blockLines.forEach(line => {
+                    // Skip pure numeric SRT cue numbers (e.g., "1", "2", "42")
+                    if (/^\d+$/.test(line)) return;
+                    // Skip timestamp lines (handles both VTT and SRT formats)
+                    // VTT: 00:00:01.000 --> 00:00:04.000
+                    // SRT: 00:00:01,000 --> 00:00:04,000
+                    if (/^\d{1,2}:\d{2}(:\d{2})?[.,]\d+\s*-->\s*\d{1,2}:\d{2}(:\d{2})?[.,]\d+/.test(line)) return;
+                    // Skip cue settings lines (e.g., "align:start position:50%")
+                    if (/^(align:|position:|size:|line:|vertical:|region:)/.test(line)) return;
+                    // Skip cue identifier lines that aren't dialogue (rare but possible)
+                    if (/^[\w\-]+:\s*$/.test(line)) return;
+                    
+                    lines.push(line);
+                });
+            });
+
+            // Step 4: Join all dialogue lines and clean inline tags
+            let cleaned = lines.join(' ');
+
+            // Remove VTT speaker tags: <v Speaker Name>...</v> or <v.classname Speaker>
+            cleaned = cleaned.replace(/<v[^>]*>/g, '').replace(/<\/v>/g, '');
+            // Remove cue timing tags: <00:00:05.000>
+            cleaned = cleaned.replace(/<\d{1,2}:\d{2}(:\d{2})?[.,]\d+>/g, '');
+            // Remove other HTML-like tags: <i>, <b>, <c.classname>, <ruby>, etc.
+            cleaned = cleaned.replace(/<\/?[a-z][^>]*>/gi, '');
+            // Remove SRT-style speaker labels at line starts: "[Speaker 1]:" or "JOHN:"
+            cleaned = cleaned.replace(/\[[^\]]+\]:\s*/g, '').replace(/^[A-Z][A-Z\s]+:\s*/gm, '');
+            // Remove curly brace formatting: {\an8} (Aegisub-style)
+            cleaned = cleaned.replace(/\{[^}]*\}/g, '');
+            // Remove music/sound notations: [music], (laughter), ♪♪
+            cleaned = cleaned.replace(/\[(music|sound|laughter|applause|crowd|noise)\]/gi, '');
+            cleaned = cleaned.replace(/\((music|sound|laughter|applause)\)/gi, '');
+            cleaned = cleaned.replace(/♪+/g, '');
+            // Collapse whitespace
+            cleaned = cleaned.replace(/\s+/g, ' ').trim();
+
+            // Step 5: Remove duplicate consecutive sentences (common in auto-captions)
+            const sentences = cleaned.split(/(?<=[.!?])\s+/);
+            const deduped = [];
+            for (let i = 0; i < sentences.length; i++) {
+                if (i === 0 || sentences[i].toLowerCase().trim() !== sentences[i - 1].toLowerCase().trim()) {
+                    deduped.push(sentences[i]);
+                }
+            }
+            cleaned = deduped.join(' ');
+
+            // Step 6: Cap to 100,000 characters (same as PDF) for Gemini limits
+            const MAX_CHARS = 100000;
+            if (cleaned.length > MAX_CHARS) {
+                console.warn(`Subtitle text truncated from ${cleaned.length} to ${MAX_CHARS} chars`);
+                cleaned = cleaned.substring(0, MAX_CHARS) + ' [Content truncated for processing...]';
+            }
+
+            return cleaned;
+        }
+
         document.getElementById('generateBtn').addEventListener('click', generateQuiz);
 
         async function generateQuiz() {
@@ -2015,6 +2178,11 @@
                 // If PDF was uploaded, append its extracted text content
                 if (extractedPdfText) {
                     textContent += `\n\n============================\nPDF CONTENT TO USE AS SOURCE:\n============================\n${extractedPdfText}`;
+                }
+
+                // If subtitles were uploaded, append the cleaned transcript
+                if (extractedSubtitleText) {
+                    textContent += `\n\n============================\nVIDEO TRANSCRIPT (FROM SUBTITLES) TO USE AS SOURCE:\n============================\n${extractedSubtitleText}`;
                 }
 
                 const response = await fetch(API_ENDPOINT, {
@@ -2183,6 +2351,10 @@
                 
                 if (extractedPdfText) {
                     textContent += `\n\n============================\nPDF CONTENT TO USE AS SOURCE:\n============================\n${extractedPdfText}`;
+                }
+
+                if (extractedSubtitleText) {
+                    textContent += `\n\n============================\nVIDEO TRANSCRIPT (FROM SUBTITLES) TO USE AS SOURCE:\n============================\n${extractedSubtitleText}`;
                 }
 
                 const response = await fetch(API_ENDPOINT, {
