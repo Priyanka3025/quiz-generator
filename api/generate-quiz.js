@@ -400,23 +400,24 @@ Examples:
 - "Find the derivative of f(x) = x^3 + 2x^2"
 
 ============================
-${config.textContent && config.textContent.includes('PDF CONTENT TO USE AS SOURCE') ? `CONTENT SCOPE RULE (CRITICAL)
+${config.textContent && (config.textContent.includes('UPLOADED SOURCE MATERIAL') || config.textContent.includes('PDF CONTENT TO USE AS SOURCE')) ? `CONTENT SCOPE RULE (CRITICAL — HIGHEST PRIORITY)
 ============================
 
-PDF content has been provided below. You MUST:
+The teacher has uploaded source material below (a PDF, video subtitles, or both). You MUST:
 
-1. Generate questions STRICTLY from concepts, facts, and topics covered in the provided PDF content ONLY.
-2. Do NOT use your general knowledge to create questions about topics that are NOT covered in the PDF.
-3. If the PDF covers "Photosynthesis and Respiration", do NOT create questions about unrelated topics like "Genetics" or "Evolution" even if they belong to the same subject.
-4. Every question's answer must be derivable from or directly supported by the PDF content.
-5. Focus on the CONCEPTS in the PDF — not on wording or phrasing from the PDF.
-6. REMEMBER RULE #0: Write questions as pure standalone questions. Never reference "the PDF", "the text", "the passage", etc.
+1. Generate questions STRICTLY from concepts, facts, and topics covered in the uploaded source material ONLY.
+2. Do NOT use your general knowledge about the named chapter to create questions about topics that are NOT covered in the uploaded content. Even if the chapter is one you "know well", ignore that knowledge and stay inside the uploaded material.
+3. If the uploaded content is about a different subject than the chapter name suggests, FOLLOW THE UPLOADED CONTENT. The uploaded material is the authoritative source — the chapter name is only metadata.
+4. Every question's answer must be derivable from or directly supported by the uploaded content.
+5. If the uploaded content covers only Topic A, do not create questions about Topic B even if both belong to the same subject area.
+6. Focus on the CONCEPTS in the uploaded material — not on its specific wording or phrasing.
+7. REMEMBER RULE #0: Write questions as pure standalone questions. Never reference "the PDF", "the transcript", "the video", "the text", "the passage", etc.
 
 Example:
-- If PDF covers: Photosynthesis, chlorophyll, light reactions, dark reactions
+- If the uploaded material covers: Photosynthesis, chlorophyll, light reactions, dark reactions
 - ✓ Good: "What is the role of chlorophyll in photosynthesis?"
-- ✗ Bad: "What is meiosis?" (not in the PDF!)
-- ✗ Bad: "According to the passage, what does chlorophyll do?" (violates Rule #0!)
+- ✗ Bad: "What is meiosis?" (not in the uploaded content!)
+- ✗ Bad: "According to the video, what does chlorophyll do?" (violates Rule #0!)
 
 ============================
 CONTENT (USE THIS AS YOUR SCOPE)
