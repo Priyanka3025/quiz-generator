@@ -1087,6 +1087,180 @@
             .regen-btn { padding: 6px 8px; }
         }
 
+        /* Edit mode styles */
+        .edit-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-family: var(--font);
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--ink-muted);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .edit-btn:hover {
+            border-color: var(--ink);
+            color: var(--ink);
+            background: var(--bg-subtle);
+        }
+        .edit-btn svg {
+            flex-shrink: 0;
+        }
+        @media (max-width: 600px) {
+            .edit-btn span { display: none; }
+            .edit-btn { padding: 6px 8px; }
+        }
+
+        /* Editing state */
+        .question-card.editing {
+            background: #FFFEF8;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(212, 165, 116, 0.1);
+        }
+
+        .edit-input {
+            width: 100%;
+            padding: 10px 12px;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-family: var(--font);
+            font-size: 15px;
+            line-height: 1.55;
+            color: var(--ink);
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+            resize: vertical;
+        }
+        .edit-input:focus {
+            outline: none;
+            border-color: var(--ink);
+            box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.06);
+        }
+        .edit-input.edit-question {
+            font-size: 16px;
+            font-weight: 500;
+            min-height: 70px;
+        }
+        .edit-input.edit-option {
+            font-size: 14px;
+            margin-bottom: 6px;
+        }
+        .edit-input.edit-explanation {
+            font-size: 13px;
+            min-height: 60px;
+            color: var(--ink-soft);
+        }
+
+        .edit-label {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--ink-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 6px;
+            margin-top: 16px;
+        }
+
+        .edit-option-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 6px;
+        }
+        .edit-option-radio {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+            cursor: pointer;
+            accent-color: var(--accent);
+        }
+        .edit-option-row .edit-input {
+            flex: 1;
+            margin-bottom: 0;
+        }
+        .edit-option-radio-label {
+            font-size: 11px;
+            color: var(--ink-muted);
+            font-weight: 500;
+        }
+
+        .edit-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-soft);
+        }
+        .edit-save {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            background: var(--ink);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-family: var(--font);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .edit-save:hover {
+            background: #000;
+        }
+        .edit-cancel {
+            padding: 8px 16px;
+            background: transparent;
+            color: var(--ink-muted);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-family: var(--font);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .edit-cancel:hover {
+            border-color: var(--ink);
+            color: var(--ink);
+        }
+        .edit-save svg {
+            width: 13px;
+            height: 13px;
+            stroke: currentColor;
+            stroke-width: 2;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        /* Edited badge */
+        .edited-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 8px;
+            background: var(--accent-soft, #F5EDE0);
+            color: #B66B17;
+            border-radius: 100px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .edited-badge svg {
+            width: 10px;
+            height: 10px;
+            stroke: currentColor;
+            stroke-width: 2.5;
+            fill: none;
+        }
+
         .tag {
             display: inline-block;
             padding: 2px 8px;
@@ -1472,7 +1646,7 @@
                                 </div>
                                 <div class="preset-info">
                                     <div class="preset-title">Quick test</div>
-                                    <div class="preset-desc">10 MCQ · Easy–Medium</div>
+                                    <div class="preset-desc">10 MCQ · All levels</div>
                                 </div>
                             </button>
                             <button type="button" class="preset-card" data-preset="board-prep">
@@ -1780,8 +1954,8 @@
             'quick-test': {
                 numQuestions: 10,
                 types: ['typeMCQ'],
-                difficulties: ['diffEasy', 'diffMedium'],
-                blooms: ['bloomRemember', 'bloomUnderstand']
+                difficulties: ['diffEasy', 'diffMedium', 'diffHard'],
+                blooms: ['bloomRemember', 'bloomUnderstand', 'bloomApply', 'bloomAnalyze', 'bloomEvaluate', 'bloomCreate']
             },
             'board-prep': {
                 numQuestions: 15,
@@ -2293,13 +2467,22 @@
 
                 card.innerHTML = `
                     <div class="question-top">
-                        <div class="question-number">Question ${q.questionNumber}</div>
+                        <div class="question-number">
+                            Question ${q.questionNumber}
+                            ${q._edited ? '<span class="edited-badge"><svg viewBox="0 0 16 16"><path d="M3 13l2.5-1 7-7-2-2-7 7L3 13z M11 4l1-1"/></svg>edited</span>' : ''}
+                        </div>
                         <div class="question-actions">
                             <div class="question-tags">
                                 <span class="tag tag-type">${escapeHTML(q.type)}</span>
                                 <span class="tag tag-difficulty">${escapeHTML(q.difficulty)}</span>
                                 <span class="tag tag-bloom">${escapeHTML(q.bloomLevel)}</span>
                             </div>
+                            <button class="edit-btn" data-index="${idx}" title="Edit this question">
+                                <svg viewBox="0 0 16 16" width="13" height="13">
+                                    <path d="M3 13l2.5-1 7-7-2-2-7 7L3 13z M11 4l1-1" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                <span>Edit</span>
+                            </button>
                             <button class="regen-btn" data-index="${idx}" title="Regenerate this question">
                                 <svg viewBox="0 0 16 16" width="13" height="13">
                                     <path d="M1 4v6h6 M15 12V6H9 M3.51 9a5 5 0 017.54 1.74L15 10 M12.49 7a5 5 0 00-7.54-1.74L1 6" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
@@ -2322,6 +2505,202 @@
                     regenerateQuestion(idx);
                 });
             });
+
+            // Attach edit handlers
+            container.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const idx = parseInt(e.currentTarget.dataset.index);
+                    enterEditMode(idx);
+                });
+            });
+        }
+
+        // ============================================================
+        // INLINE EDIT MODE
+        // ============================================================
+        function enterEditMode(index) {
+            if (!generatedQuiz || !generatedQuiz.questions[index]) return;
+            const q = generatedQuiz.questions[index];
+            const card = document.querySelector(`.question-card[data-question-index="${index}"]`);
+            if (!card || card.classList.contains('editing')) return;
+
+            card.classList.add('editing');
+
+            // Determine question type and build edit form accordingly
+            const hasOptions = q.options && q.options.length > 0;
+            const isSubjective = q.type === 'Subjective';
+
+            let optionsEditHTML = '';
+            if (hasOptions) {
+                optionsEditHTML = '<div class="edit-label">Options (select correct answer)</div>';
+                q.options.forEach((opt, optIdx) => {
+                    const isCorrect = opt === q.correctAnswer;
+                    optionsEditHTML += `
+                        <div class="edit-option-row">
+                            <input type="radio" name="edit-correct-${index}" class="edit-option-radio" data-option-idx="${optIdx}" ${isCorrect ? 'checked' : ''}>
+                            <input type="text" class="edit-input edit-option" data-option-idx="${optIdx}" value="${escapeAttr(opt)}">
+                        </div>
+                    `;
+                });
+            }
+
+            let answerEditHTML = '';
+            if (isSubjective) {
+                answerEditHTML = `
+                    <div class="edit-label">Model answer</div>
+                    <textarea class="edit-input edit-explanation" id="edit-modelAnswer-${index}">${escapeHTML(q.modelAnswer || q.correctAnswer || '')}</textarea>
+                `;
+            } else if (!hasOptions) {
+                // True/False or other simple answers
+                answerEditHTML = `
+                    <div class="edit-label">Correct answer</div>
+                    <input type="text" class="edit-input" id="edit-answer-${index}" value="${escapeAttr(q.correctAnswer || '')}">
+                `;
+            }
+
+            const explanationEditHTML = !isSubjective ? `
+                <div class="edit-label">Explanation (optional)</div>
+                <textarea class="edit-input edit-explanation" id="edit-explanation-${index}">${escapeHTML(q.explanation || '')}</textarea>
+            ` : '';
+
+            // Build the edit form HTML, preserving the question header
+            const headerHTML = card.querySelector('.question-top').outerHTML;
+            
+            card.innerHTML = `
+                ${headerHTML}
+                <div class="edit-label" style="margin-top: 0;">Question</div>
+                <textarea class="edit-input edit-question" id="edit-question-${index}">${escapeHTML(q.question || '')}</textarea>
+                ${optionsEditHTML}
+                ${answerEditHTML}
+                ${explanationEditHTML}
+                <div class="edit-actions">
+                    <button class="edit-save" data-index="${index}">
+                        <svg viewBox="0 0 16 16"><path d="M3 8l3 3 7-7"/></svg>
+                        Save changes
+                    </button>
+                    <button class="edit-cancel" data-index="${index}">Cancel</button>
+                </div>
+            `;
+
+            // Re-attach buttons that we just rebuilt (they're inside the headerHTML)
+            const editBtn = card.querySelector('.edit-btn');
+            const regenBtn = card.querySelector('.regen-btn');
+            if (editBtn) editBtn.disabled = true;  // Disable while editing
+            if (regenBtn) regenBtn.disabled = true;
+
+            // Wire up save/cancel
+            card.querySelector('.edit-save').addEventListener('click', () => saveEdit(index));
+            card.querySelector('.edit-cancel').addEventListener('click', () => cancelEdit(index));
+
+            // Focus the question textarea
+            const qInput = document.getElementById(`edit-question-${index}`);
+            if (qInput) {
+                qInput.focus();
+                // Auto-resize to fit content
+                qInput.style.height = 'auto';
+                qInput.style.height = qInput.scrollHeight + 'px';
+            }
+
+            // Auto-resize textareas
+            card.querySelectorAll('textarea.edit-input').forEach(ta => {
+                ta.addEventListener('input', () => {
+                    ta.style.height = 'auto';
+                    ta.style.height = ta.scrollHeight + 'px';
+                });
+                // Initial resize
+                ta.style.height = 'auto';
+                ta.style.height = ta.scrollHeight + 'px';
+            });
+
+            // Allow Esc to cancel
+            const escHandler = (e) => {
+                if (e.key === 'Escape') {
+                    cancelEdit(index);
+                    document.removeEventListener('keydown', escHandler);
+                }
+            };
+            document.addEventListener('keydown', escHandler);
+        }
+
+        function saveEdit(index) {
+            const q = generatedQuiz.questions[index];
+            const card = document.querySelector(`.question-card[data-question-index="${index}"]`);
+
+            // Collect new values
+            const newQuestion = document.getElementById(`edit-question-${index}`).value.trim();
+            if (!newQuestion) {
+                alert('Question text cannot be empty.');
+                return;
+            }
+
+            // Update question text
+            q.question = newQuestion;
+
+            // Update options + correct answer (if applicable)
+            if (q.options && q.options.length > 0) {
+                const optionInputs = card.querySelectorAll('.edit-input.edit-option');
+                const radioInputs = card.querySelectorAll('.edit-option-radio');
+                const newOptions = [];
+                let newCorrectAnswer = q.correctAnswer;
+
+                optionInputs.forEach((input, idx) => {
+                    const val = input.value.trim();
+                    newOptions.push(val);
+                    if (radioInputs[idx] && radioInputs[idx].checked) {
+                        newCorrectAnswer = val;
+                    }
+                });
+
+                if (newOptions.some(o => !o)) {
+                    alert('All options must have text. Please fill in or remove empty options.');
+                    return;
+                }
+
+                q.options = newOptions;
+                q.correctAnswer = newCorrectAnswer;
+            }
+
+            // Update model answer (Subjective)
+            if (q.type === 'Subjective') {
+                const modelAnswerEl = document.getElementById(`edit-modelAnswer-${index}`);
+                if (modelAnswerEl) {
+                    q.modelAnswer = modelAnswerEl.value.trim();
+                }
+            } else if (!q.options || q.options.length === 0) {
+                // Simple answer (True/False, etc.)
+                const answerEl = document.getElementById(`edit-answer-${index}`);
+                if (answerEl) {
+                    q.correctAnswer = answerEl.value.trim();
+                }
+            }
+
+            // Update explanation
+            const explanationEl = document.getElementById(`edit-explanation-${index}`);
+            if (explanationEl) {
+                q.explanation = explanationEl.value.trim();
+            }
+
+            // Mark as edited
+            q._edited = true;
+
+            // Re-render the quiz with updated content
+            displayQuiz(generatedQuiz);
+        }
+
+        function cancelEdit(index) {
+            // Just re-render — original data is untouched
+            displayQuiz(generatedQuiz);
+        }
+
+        // Helper: escape strings for use inside HTML attributes
+        function escapeAttr(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
         }
 
         // Regenerate a single question
