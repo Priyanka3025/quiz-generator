@@ -2347,16 +2347,59 @@
                 const classLevel = document.getElementById('classSelect').value;
                 const language = document.getElementById('languageSelect').value;
                 
-                let textContent = `Generate quiz questions for:\nBoard: ${board}\nClass: ${classLevel}\nSubject: ${subject}\nChapter: ${chapterName}\nLanguage: ${language}`;
+                // Determine if we have uploaded source material (PDF or subtitles)
+                // When source material is provided, it MUST be the only source for question content.
+                // The chapter name is then only used for calibration (difficulty level, language register, etc.)
+                const hasUploadedContent = !!(extractedPdfText || extractedSubtitleText);
                 
-                // If PDF was uploaded, append its extracted text content
-                if (extractedPdfText) {
-                    textContent += `\n\n============================\nPDF CONTENT TO USE AS SOURCE:\n============================\n${extractedPdfText}`;
-                }
+                let textContent;
+                
+                if (hasUploadedContent) {
+                    // PRIORITY MODE: uploaded content is the single source of truth.
+                    // We lead with the source material and explicit priority instructions,
+                    // so the AI cannot drift to its general knowledge of the chapter.
+                    textContent = `CRITICAL PRIORITY INSTRUCTION — READ THIS FIRST:
 
-                // If subtitles were uploaded, append the cleaned transcript
-                if (extractedSubtitleText) {
-                    textContent += `\n\n============================\nVIDEO TRANSCRIPT (FROM SUBTITLES) TO USE AS SOURCE:\n============================\n${extractedSubtitleText}`;
+The teacher has uploaded source material below. Generate quiz questions ONLY from the content of this uploaded material. Do NOT use your general knowledge about the chapter "${chapterName}" or any external information.
+
+If the uploaded content is about a different topic than the chapter name suggests, FOLLOW THE UPLOADED CONTENT, not the chapter name. The uploaded material is the authoritative source — the chapter name is only metadata for record-keeping.
+
+Every single question, option, answer, and explanation must be derivable from the uploaded source material below. If a fact is not in the uploaded content, do not include it in any question.
+
+============================
+UPLOADED SOURCE MATERIAL (USE THIS AND ONLY THIS):
+============================`;
+                    
+                    if (extractedPdfText) {
+                        textContent += `\n\n--- PDF CONTENT ---\n${extractedPdfText}`;
+                    }
+                    
+                    if (extractedSubtitleText) {
+                        textContent += `\n\n--- VIDEO TRANSCRIPT (FROM SUBTITLES) ---\n${extractedSubtitleText}`;
+                    }
+                    
+                    // Now the metadata, clearly labeled as calibration info only
+                    textContent += `\n\n============================
+METADATA (FOR CALIBRATION ONLY — DO NOT USE AS A QUESTION SOURCE):
+============================
+Board: ${board}
+Class: ${classLevel} (use this to calibrate difficulty and language register)
+Subject: ${subject}
+Chapter (for filing only): ${chapterName}
+Language for output: ${language}
+
+REMINDER: The chapter name above is for record-keeping. Generate questions strictly from the uploaded source material. Do not inject information from your knowledge of "${chapterName}" — only use what was uploaded.`;
+                } else {
+                    // FALLBACK MODE: no upload, so the chapter name is the only signal we have.
+                    // Use AI's general knowledge of the chapter as the source.
+                    textContent = `Generate quiz questions for:
+Board: ${board}
+Class: ${classLevel}
+Subject: ${subject}
+Chapter: ${chapterName}
+Language: ${language}
+
+No source material was uploaded, so use your knowledge of standard NCERT/board curriculum content for this chapter.`;
                 }
 
                 const response = await fetch(API_ENDPOINT, {
@@ -2726,14 +2769,57 @@
                 const classLevel = document.getElementById('classSelect').value;
                 const language = document.getElementById('languageSelect').value;
                 
-                let textContent = `Generate ONE quiz question for:\nBoard: ${board}\nClass: ${classLevel}\nSubject: ${subject}\nChapter: ${chapterName}\nLanguage: ${language}\n\nIMPORTANT: Generate a DIFFERENT question than this one (we want to replace it):\nOld question: "${oldQuestion.question}"\n\nThe new question must cover a DIFFERENT concept or angle from the old one. Do not repeat the same topic.`;
+                // Same priority logic as main generation: uploaded content is the source of truth
+                const hasUploadedContent = !!(extractedPdfText || extractedSubtitleText);
                 
-                if (extractedPdfText) {
-                    textContent += `\n\n============================\nPDF CONTENT TO USE AS SOURCE:\n============================\n${extractedPdfText}`;
-                }
+                let textContent;
+                
+                if (hasUploadedContent) {
+                    // PRIORITY MODE for regeneration: use uploaded content as the only source.
+                    textContent = `CRITICAL PRIORITY INSTRUCTION — READ THIS FIRST:
 
-                if (extractedSubtitleText) {
-                    textContent += `\n\n============================\nVIDEO TRANSCRIPT (FROM SUBTITLES) TO USE AS SOURCE:\n============================\n${extractedSubtitleText}`;
+Generate ONE replacement quiz question. Use ONLY the uploaded source material below as your source of facts. Do NOT use your general knowledge about "${chapterName}". If the uploaded content contradicts what you know about that chapter, follow the uploaded content.
+
+You are replacing this existing question (do not produce something equivalent to it):
+Old question: "${oldQuestion.question}"
+
+The new question must cover a DIFFERENT concept or angle from the old one — but it must still come strictly from the uploaded material.
+
+============================
+UPLOADED SOURCE MATERIAL (USE THIS AND ONLY THIS):
+============================`;
+                    
+                    if (extractedPdfText) {
+                        textContent += `\n\n--- PDF CONTENT ---\n${extractedPdfText}`;
+                    }
+                    
+                    if (extractedSubtitleText) {
+                        textContent += `\n\n--- VIDEO TRANSCRIPT (FROM SUBTITLES) ---\n${extractedSubtitleText}`;
+                    }
+                    
+                    textContent += `\n\n============================
+METADATA (FOR CALIBRATION ONLY — DO NOT USE AS A QUESTION SOURCE):
+============================
+Board: ${board}
+Class: ${classLevel} (use this to calibrate difficulty and language register)
+Subject: ${subject}
+Chapter (for filing only): ${chapterName}
+Language for output: ${language}
+
+REMINDER: Build the new question from the uploaded content above, not from general knowledge of "${chapterName}".`;
+                } else {
+                    // FALLBACK MODE: no upload, so use chapter knowledge
+                    textContent = `Generate ONE quiz question for:
+Board: ${board}
+Class: ${classLevel}
+Subject: ${subject}
+Chapter: ${chapterName}
+Language: ${language}
+
+IMPORTANT: Generate a DIFFERENT question than this one (we want to replace it):
+Old question: "${oldQuestion.question}"
+
+The new question must cover a DIFFERENT concept or angle from the old one. Do not repeat the same topic.`;
                 }
 
                 const response = await fetch(API_ENDPOINT, {
@@ -2953,7 +3039,7 @@
             const chapter = selectedChapter || 'N/A';
             
             // Build title from chapter + class
-            const title = `${chapter} — Class ${classValue}`;
+            const title = chapter;
             
             // Format questions in the template structure
             const questions = generatedQuiz.questions.map(q => {
