@@ -1566,6 +1566,14 @@
 
                 <div class="field-group" style="margin-top: 20px;">
                     <div class="field">
+                        <label class="field-label">Subtopic <span style="color: var(--ink-muted); font-weight: 400; font-size: 12px;">— optional, for narrower focus</span></label>
+                        <input type="text" class="field-input" id="subtopicInput" placeholder="e.g., Light Reactions, Active Transport, Newton's Second Law">
+                        <div style="font-size: 12px; color: var(--ink-muted); margin-top: 6px;">If your video or PDF only covers part of the chapter, name that subtopic here. It will appear in the Topic field of your exported JSON and help focus the questions.</div>
+                    </div>
+                </div>
+
+                <div class="field-group" style="margin-top: 20px;">
+                    <div class="field">
                         <label class="field-label">Language</label>
                         <select class="field-select" id="languageSelect" style="max-width: 400px;">
                             <option value="English" selected>English</option>
@@ -2326,6 +2334,7 @@
             const chapterName = chapterSelect.style.display !== 'none' 
                 ? chapterSelect.value 
                 : chapterCustom.value.trim();
+            const subtopic = (document.getElementById('subtopicInput').value || '').trim();
 
             if (!subject) { showError('Please select a subject.'); return; }
             if (!chapterName) { showError('Please select or enter a chapter.'); return; }
@@ -2358,6 +2367,13 @@
                     // PRIORITY MODE: uploaded content is the single source of truth.
                     // We lead with the source material and explicit priority instructions,
                     // so the AI cannot drift to its general knowledge of the chapter.
+                    
+                    // If the teacher specified a subtopic, build a focused phrase to inject.
+                    // The subtopic narrows attention within the broader chapter and within the upload.
+                    const subtopicFocusLine = subtopic
+                        ? `\n\nFOCUS WITHIN THE CHAPTER: The teacher has narrowed the focus to the subtopic "${subtopic}". Within the uploaded material, prioritize concepts that fall under this subtopic. If the upload contains content beyond "${subtopic}", you may still draw from it lightly when helpful, but the questions should center on "${subtopic}" specifically.`
+                        : '';
+                    
                     textContent = `CRITICAL PRIORITY INSTRUCTION — READ THIS FIRST:
 
 The teacher has uploaded source material below. The uploaded material defines BOTH the facts you may use AND the scope of concepts you may test. This is a hard boundary.
@@ -2368,7 +2384,7 @@ Rule 2 — Scope of concepts (this is the most important rule): Only test concep
 
 Concrete example of Rule 2: Suppose the chapter is "Motion" and the uploaded video covers only distance, displacement, and speed, but not acceleration or equations of motion. You must generate questions ONLY about distance, displacement, and speed. Do NOT generate any question about acceleration or equations of motion, even though those concepts belong to the Motion chapter. The student has not learned them yet from this video.
 
-Rule 3 — Topic mismatch: If the uploaded content is about a completely different topic than the chapter name suggests, follow the uploaded content. The uploaded material is the authoritative source.
+Rule 3 — Topic mismatch: If the uploaded content is about a completely different topic than the chapter name suggests, follow the uploaded content. The uploaded material is the authoritative source.${subtopicFocusLine}
 
 Before writing any question, silently ask yourself: "Is this specific concept actually discussed in the uploaded material below?" If the honest answer is no, do not write that question. Pick a different concept that IS in the material.
 
@@ -2391,10 +2407,11 @@ METADATA (FOR CALIBRATION ONLY — DO NOT USE AS A QUESTION SOURCE):
 Board: ${board}
 Class: ${classLevel} (use this to calibrate difficulty and language register)
 Subject: ${subject}
-Chapter (for filing only): ${chapterName}
+Chapter (for filing only): ${chapterName}${subtopic ? `
+Subtopic focus: ${subtopic}` : ''}
 Language for output: ${language}
 
-REMINDER: The chapter name above is for record-keeping only. Generate questions strictly from concepts that ARE present in the uploaded source material. Do not test any concept that is absent from the upload, even if that concept is part of the named chapter. Students have only been taught what is in the uploaded material — anything beyond that scope would be unfair.`;
+REMINDER: The chapter name above is for record-keeping only. Generate questions strictly from concepts that ARE present in the uploaded source material${subtopic ? `, with focus on "${subtopic}" within that material` : ''}. Do not test any concept that is absent from the upload, even if that concept is part of the named chapter. Students have only been taught what is in the uploaded material — anything beyond that scope would be unfair.`;
                 } else {
                     // FALLBACK MODE: no upload, so the chapter name is the only signal we have.
                     // Use AI's general knowledge of the chapter as the source.
@@ -2402,10 +2419,11 @@ REMINDER: The chapter name above is for record-keeping only. Generate questions 
 Board: ${board}
 Class: ${classLevel}
 Subject: ${subject}
-Chapter: ${chapterName}
+Chapter: ${chapterName}${subtopic ? `
+Subtopic focus: ${subtopic} (focus your questions on this specific subtopic within the chapter)` : ''}
 Language: ${language}
 
-No source material was uploaded, so use your knowledge of standard NCERT/board curriculum content for this chapter.`;
+No source material was uploaded, so use your knowledge of standard NCERT/board curriculum content for this chapter${subtopic ? `, focusing specifically on the subtopic "${subtopic}"` : ''}.`;
                 }
 
                 const response = await fetch(API_ENDPOINT, {
@@ -2771,6 +2789,7 @@ No source material was uploaded, so use your knowledge of standard NCERT/board c
                 const chapterName = chapterSelect.style.display !== 'none' 
                     ? chapterSelect.value 
                     : chapterCustom.value.trim();
+                const subtopic = (document.getElementById('subtopicInput').value || '').trim();
                 const board = document.getElementById('boardSelect').value;
                 const classLevel = document.getElementById('classSelect').value;
                 const language = document.getElementById('languageSelect').value;
@@ -2782,13 +2801,17 @@ No source material was uploaded, so use your knowledge of standard NCERT/board c
                 
                 if (hasUploadedContent) {
                     // PRIORITY MODE for regeneration: use uploaded content as the only source.
+                    const subtopicFocusLine = subtopic
+                        ? `\n\nFOCUS WITHIN THE CHAPTER: The teacher narrowed the focus to the subtopic "${subtopic}". Pick a different concept under this subtopic from what the old question already covered.`
+                        : '';
+                    
                     textContent = `CRITICAL PRIORITY INSTRUCTION — READ THIS FIRST:
 
 Generate ONE replacement quiz question. The uploaded material below defines BOTH the facts you may use AND the scope of concepts you may test.
 
 Rule 1 — Source of facts: Use only facts from the uploaded material. Do not import information from your general knowledge of "${chapterName}".
 
-Rule 2 — Scope of concepts (most important): Only test concepts that are actually discussed in the uploaded material. If a concept belongs to the chapter "${chapterName}" but is NOT covered in the upload, do not write a question about it. The teacher uploaded this specific material because it represents what students have been taught so far. A question about anything beyond this scope would test material students have not learned yet.
+Rule 2 — Scope of concepts (most important): Only test concepts that are actually discussed in the uploaded material. If a concept belongs to the chapter "${chapterName}" but is NOT covered in the upload, do not write a question about it. The teacher uploaded this specific material because it represents what students have been taught so far. A question about anything beyond this scope would test material students have not learned yet.${subtopicFocusLine}
 
 You are replacing this existing question (do not produce something equivalent to it):
 Old question: "${oldQuestion.question}"
@@ -2815,7 +2838,8 @@ METADATA (FOR CALIBRATION ONLY — DO NOT USE AS A QUESTION SOURCE):
 Board: ${board}
 Class: ${classLevel} (use this to calibrate difficulty and language register)
 Subject: ${subject}
-Chapter (for filing only): ${chapterName}
+Chapter (for filing only): ${chapterName}${subtopic ? `
+Subtopic focus: ${subtopic}` : ''}
 Language for output: ${language}
 
 REMINDER: Build the new question from the uploaded content above, not from general knowledge of "${chapterName}".`;
@@ -2825,7 +2849,8 @@ REMINDER: Build the new question from the uploaded content above, not from gener
 Board: ${board}
 Class: ${classLevel}
 Subject: ${subject}
-Chapter: ${chapterName}
+Chapter: ${chapterName}${subtopic ? `
+Subtopic focus: ${subtopic} (focus your question on this specific subtopic)` : ''}
 Language: ${language}
 
 IMPORTANT: Generate a DIFFERENT question than this one (we want to replace it):
@@ -3125,7 +3150,7 @@ The new question must cover a DIFFERENT concept or angle from the old one. Do no
                 "Class": classValue,
                 "Subject": subject,
                 "Chapter": chapter,
-                "Topic": chapter,
+                "Topic": (document.getElementById('subtopicInput').value || '').trim() || chapter,
                 "Questions": questions
             };
             
