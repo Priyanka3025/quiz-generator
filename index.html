@@ -1908,7 +1908,7 @@
                 chapterCustom.style.display = 'block';
                 chapterCustom.value = '';
                 
-                const genericSubjects = ['Science', 'Physics', 'Chemistry', 'Biology', 'Mathematics', 'Social Science', 'History', 'Geography', 'Economics', 'Civics', 'English', 'Hindi', 'Computer Science', 'Other'];
+                const genericSubjects = ['Science', 'Physics', 'Chemistry', 'Biology', 'Mathematics', 'Social Science', 'History', 'Geography', 'Economics', 'Civics', 'English', 'Hindi', 'Telugu', 'Computer Science', 'Other'];
                 genericSubjects.forEach(subject => {
                     const option = document.createElement('option');
                     option.value = subject;
@@ -2360,14 +2360,20 @@
                     // so the AI cannot drift to its general knowledge of the chapter.
                     textContent = `CRITICAL PRIORITY INSTRUCTION — READ THIS FIRST:
 
-The teacher has uploaded source material below. Generate quiz questions ONLY from the content of this uploaded material. Do NOT use your general knowledge about the chapter "${chapterName}" or any external information.
+The teacher has uploaded source material below. The uploaded material defines BOTH the facts you may use AND the scope of concepts you may test. This is a hard boundary.
 
-If the uploaded content is about a different topic than the chapter name suggests, FOLLOW THE UPLOADED CONTENT, not the chapter name. The uploaded material is the authoritative source — the chapter name is only metadata for record-keeping.
+Rule 1 — Source of facts: Every fact, definition, formula, example, and explanation in your questions must come from the uploaded material. Do not import information from your general knowledge of the chapter "${chapterName}".
 
-Every single question, option, answer, and explanation must be derivable from the uploaded source material below. If a fact is not in the uploaded content, do not include it in any question.
+Rule 2 — Scope of concepts (this is the most important rule): Only test concepts that are actually discussed in the uploaded material. If a concept belongs to the chapter "${chapterName}" but is NOT covered in the uploaded content, do NOT include any question about it. The teacher has uploaded this specific material because it represents what students have been taught so far. Testing concepts beyond this would test material students have not yet learned, which is harmful.
+
+Concrete example of Rule 2: Suppose the chapter is "Motion" and the uploaded video covers only distance, displacement, and speed, but not acceleration or equations of motion. You must generate questions ONLY about distance, displacement, and speed. Do NOT generate any question about acceleration or equations of motion, even though those concepts belong to the Motion chapter. The student has not learned them yet from this video.
+
+Rule 3 — Topic mismatch: If the uploaded content is about a completely different topic than the chapter name suggests, follow the uploaded content. The uploaded material is the authoritative source.
+
+Before writing any question, silently ask yourself: "Is this specific concept actually discussed in the uploaded material below?" If the honest answer is no, do not write that question. Pick a different concept that IS in the material.
 
 ============================
-UPLOADED SOURCE MATERIAL (USE THIS AND ONLY THIS):
+UPLOADED SOURCE MATERIAL (THIS DEFINES YOUR ENTIRE SCOPE):
 ============================`;
                     
                     if (extractedPdfText) {
@@ -2388,7 +2394,7 @@ Subject: ${subject}
 Chapter (for filing only): ${chapterName}
 Language for output: ${language}
 
-REMINDER: The chapter name above is for record-keeping. Generate questions strictly from the uploaded source material. Do not inject information from your knowledge of "${chapterName}" — only use what was uploaded.`;
+REMINDER: The chapter name above is for record-keeping only. Generate questions strictly from concepts that ARE present in the uploaded source material. Do not test any concept that is absent from the upload, even if that concept is part of the named chapter. Students have only been taught what is in the uploaded material — anything beyond that scope would be unfair.`;
                 } else {
                     // FALLBACK MODE: no upload, so the chapter name is the only signal we have.
                     // Use AI's general knowledge of the chapter as the source.
@@ -2778,15 +2784,21 @@ No source material was uploaded, so use your knowledge of standard NCERT/board c
                     // PRIORITY MODE for regeneration: use uploaded content as the only source.
                     textContent = `CRITICAL PRIORITY INSTRUCTION — READ THIS FIRST:
 
-Generate ONE replacement quiz question. Use ONLY the uploaded source material below as your source of facts. Do NOT use your general knowledge about "${chapterName}". If the uploaded content contradicts what you know about that chapter, follow the uploaded content.
+Generate ONE replacement quiz question. The uploaded material below defines BOTH the facts you may use AND the scope of concepts you may test.
+
+Rule 1 — Source of facts: Use only facts from the uploaded material. Do not import information from your general knowledge of "${chapterName}".
+
+Rule 2 — Scope of concepts (most important): Only test concepts that are actually discussed in the uploaded material. If a concept belongs to the chapter "${chapterName}" but is NOT covered in the upload, do not write a question about it. The teacher uploaded this specific material because it represents what students have been taught so far. A question about anything beyond this scope would test material students have not learned yet.
 
 You are replacing this existing question (do not produce something equivalent to it):
 Old question: "${oldQuestion.question}"
 
-The new question must cover a DIFFERENT concept or angle from the old one — but it must still come strictly from the uploaded material.
+The new question must cover a DIFFERENT concept or angle from the old one — but the new concept must still be one that is actually present in the uploaded material. Do not pick a "different" concept by reaching beyond the upload.
+
+Before writing the question, silently check: "Is this specific concept actually discussed in the uploaded material below?" If the honest answer is no, pick a different concept that IS in the material.
 
 ============================
-UPLOADED SOURCE MATERIAL (USE THIS AND ONLY THIS):
+UPLOADED SOURCE MATERIAL (THIS DEFINES YOUR ENTIRE SCOPE):
 ============================`;
                     
                     if (extractedPdfText) {
