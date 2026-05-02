@@ -2876,7 +2876,13 @@ The new question must cover a DIFFERENT concept or angle from the old one. Do no
                 });
 
                 if (!response.ok) {
-                    throw new Error('Failed to regenerate. Please try again.');
+                    // Read the actual error message from the API instead of throwing a generic one.
+                    // This lets the user see if it's a rate limit, server overload, or something else.
+                    if (response.status === 413) {
+                        throw new Error('The uploaded content is too large.');
+                    }
+                    const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+                    throw new Error(errorData.error || `Request failed: ${response.status}`);
                 }
 
                 const result = await response.json();
@@ -2902,7 +2908,9 @@ The new question must cover a DIFFERENT concept or angle from the old one. Do no
                         setTimeout(() => newCard.classList.remove('just-regenerated'), 1500);
                     }
                 } else {
-                    throw new Error('No question returned');
+                    // The API succeeded but returned no questions. This usually means the AI
+                    // produced output that didn't pass validation. Suggest a concrete next step.
+                    throw new Error('The AI did not return a valid replacement question. Please try again — sometimes the same constraints work on a second attempt.');
                 }
             } catch (error) {
                 console.error('Regenerate error:', error);
