@@ -235,14 +235,11 @@ function buildPrompt(config) {
 RULE #0 — MOST IMPORTANT RULE
 ============================
 
-Each "question" field must contain ONLY the direct question itself. Nothing else.
+Every text field you generate — the question field, the options, the explanation field, the modelAnswer field, and the correctAnswer field — must read as a pure, standalone educational artifact. Nothing should hint that there is any source material behind the scenes.
 
-The question must be a pure, standalone educational question that stands completely on its own — exactly as it would appear in a textbook, exam paper, or worksheet.
+The question must be a pure, standalone educational question that stands completely on its own — exactly as it would appear in a textbook, exam paper, or worksheet. The explanation must read like a normal textbook explanation. The model answer must read like a normal textbook answer. None of these fields may reference how the question was created or what material was used to create it.
 
-The question field is ONLY for: the question itself.
-The question field is NOT for: any reference to where the information came from.
-
-DO NOT include ANY of the following phrases ANYWHERE in the question field:
+DO NOT include ANY of the following phrases ANYWHERE in any generated field (question, options, explanation, modelAnswer, correctAnswer):
 - "according to..."
 - "as mentioned..."
 - "as stated..."
@@ -257,32 +254,38 @@ DO NOT include ANY of the following phrases ANYWHERE in the question field:
 - "as discussed..."
 - "as noted..."
 - "as written..."
-- "from the text/passage/PDF/document/content/chapter/paragraph/extract/source/article/lesson/book"
-- "in the text/passage/PDF/document/content/chapter/paragraph/extract/source/article/lesson/book"
+- "from the text/passage/PDF/document/content/chapter/paragraph/extract/source/article/lesson/book/transcript/video"
+- "in the text/passage/PDF/document/content/chapter/paragraph/extract/source/article/lesson/book/transcript/video"
 - "the text says", "the passage says", "the author says", "the document states"
+- "the transcript indicates", "the transcript says", "the video shows", "the video explains"
 - "referring to..."
 - "following the..."
 - "highlighted in..."
 - "referenced in..."
-- Any mention of: text, passage, document, PDF, content, extract, chapter, paragraph, article, author, source, lesson, reading, material, above, below, given, provided
-- Any phrase that would not appear in a standard textbook question
+- Any mention of: text, passage, document, PDF, content, extract, chapter, paragraph, article, author, source, lesson, reading, material, above, below, given, provided, transcript, video, recording, audio
+- Any phrase that would not appear in a standard textbook question or textbook explanation
+
+CRITICAL CONTEXT FOR UPLOADED CONTENT: When a teacher uploads a PDF or video transcript, the uploaded material is YOUR private input. Students will only see the final quiz. They have no idea a transcript or PDF exists. Writing "the transcript indicates that..." or "according to the video..." would be like a chef writing a recipe that says "as shown in the supermarket where I bought these ingredients" — completely out of place in the final product. The student must not be able to tell whether the quiz was generated from a textbook, a video, a PDF, or your general knowledge. All four sources should produce identical-looking output in terms of style and self-containedness.
 
 WRONG (these are all FORBIDDEN — do NOT do this):
-❌ "According to the text, what is photosynthesis?"
-❌ "What is photosynthesis, as mentioned in the passage?"
-❌ "What is the primary role of science in daily life, as highlighted in the text?"
-❌ "Why does a spoon look bent, based on the given content?"
-❌ "From the document, identify..."
+❌ Question: "According to the text, what is photosynthesis?"
+❌ Question: "What is photosynthesis, as mentioned in the passage?"
+❌ Question: "What is the main message conveyed by the author, according to the text?"
+❌ Explanation: "The transcript indicates that this developed gradually."
+❌ Explanation: "As stated in the video, the process began at age 11."
+❌ ModelAnswer: "Based on the passage, the main idea is..."
+❌ Explanation: "The text shows that this was first noticed when..."
 
 CORRECT (this is what you MUST do):
-✓ "What is photosynthesis?"
-✓ "What is the primary role of science in daily life?"
-✓ "Why does a spoon look bent when placed in water?"
-✓ "Identify the main function of..."
+✓ Question: "What is photosynthesis?"
+✓ Question: "What is the main message conveyed in the story?"
+✓ Explanation: "Hearing loss developed gradually and was first noticed at age 11."
+✓ Explanation: "The condition began at birth and worsened over time."
+✓ ModelAnswer: "The main idea centers on the importance of perseverance..."
 
-THE TEST: Read each question aloud. If it sounds like it's referring to ANY external source, rewrite it as a pure question about the CONCEPT itself.
+THE TEST: Read each generated field aloud. If anything in the question, explanation, or answer hints that there is a source somewhere, rewrite it as a clean statement about the CONCEPT itself. The reader must believe these came from a textbook author who simply knows the subject — not from someone summarizing a specific document.
 
-You are generating questions as if writing a standalone exam paper. The student does NOT have access to "the text" or "the passage" — they must answer from their knowledge of the subject. Write every question accordingly.
+You are generating questions as if writing a standalone exam paper. The student does NOT have access to "the text" or "the passage" or "the transcript" — they must answer from their knowledge of the subject. Write every field accordingly.
 
 ============================
 OTHER CRITICAL RULES
@@ -403,21 +406,30 @@ Examples:
 ${config.textContent && (config.textContent.includes('UPLOADED SOURCE MATERIAL') || config.textContent.includes('PDF CONTENT TO USE AS SOURCE')) ? `CONTENT SCOPE RULE (CRITICAL — HIGHEST PRIORITY)
 ============================
 
-The teacher has uploaded source material below (a PDF, video subtitles, or both). You MUST:
+The teacher has uploaded source material below (a PDF, video subtitles, or both). The uploaded material defines BOTH the facts you may use AND the scope of concepts you may test. The teacher uploaded this specific material because it represents what students have actually been taught so far. Going beyond it would test material students have not yet learned, which is harmful.
 
-1. Generate questions STRICTLY from concepts, facts, and topics covered in the uploaded source material ONLY.
-2. Do NOT use your general knowledge about the named chapter to create questions about topics that are NOT covered in the uploaded content. Even if the chapter is one you "know well", ignore that knowledge and stay inside the uploaded material.
-3. If the uploaded content is about a different subject than the chapter name suggests, FOLLOW THE UPLOADED CONTENT. The uploaded material is the authoritative source — the chapter name is only metadata.
-4. Every question's answer must be derivable from or directly supported by the uploaded content.
-5. If the uploaded content covers only Topic A, do not create questions about Topic B even if both belong to the same subject area.
-6. Focus on the CONCEPTS in the uploaded material — not on its specific wording or phrasing.
-7. REMEMBER RULE #0: Write questions as pure standalone questions. Never reference "the PDF", "the transcript", "the video", "the text", "the passage", etc.
+You MUST follow these rules:
+
+1. Source of facts: Generate questions STRICTLY from concepts, facts, and topics covered in the uploaded source material ONLY. Do NOT use your general knowledge about the named chapter to introduce facts that are not in the upload.
+
+2. Scope of concepts (most important): Test ONLY concepts that are actually discussed in the uploaded material. If a concept belongs to the named chapter but is NOT covered in the upload, do NOT include any question about it. For example, if the chapter is "Motion" and the upload covers only distance, displacement, and speed, do NOT create questions about acceleration or equations of motion — even though those concepts belong to the Motion chapter, students have not yet been taught them from this material.
+
+3. Topic mismatch: If the uploaded content is about a completely different subject than the chapter name suggests, follow the uploaded content. The uploaded material is the authoritative source.
+
+4. Derivability: Every question's answer must be derivable from or directly supported by the uploaded content.
+
+5. Conceptual focus: Focus on the CONCEPTS in the uploaded material — not on its specific wording or phrasing.
+
+6. REMEMBER RULE #0: Write questions as pure standalone questions. Never reference "the PDF", "the transcript", "the video", "the text", "the passage", etc.
+
+Before writing each question, silently check: "Is this specific concept actually discussed in the uploaded material below?" If the honest answer is no, pick a different concept that IS in the material.
 
 Example:
-- If the uploaded material covers: Photosynthesis, chlorophyll, light reactions, dark reactions
+- If the uploaded material covers: Photosynthesis, chlorophyll, light reactions
 - ✓ Good: "What is the role of chlorophyll in photosynthesis?"
-- ✗ Bad: "What is meiosis?" (not in the uploaded content!)
-- ✗ Bad: "According to the video, what does chlorophyll do?" (violates Rule #0!)
+- ✗ Bad: "What is meiosis?" (not in the uploaded content at all)
+- ✗ Bad: "What is the dark reaction?" (belongs to photosynthesis chapter but is not in this specific upload, so students have not yet learned it)
+- ✗ Bad: "According to the video, what does chlorophyll do?" (violates Rule #0)
 
 ============================
 CONTENT (USE THIS AS YOUR SCOPE)
@@ -465,7 +477,7 @@ For Subjective questions, use this structure instead:
 
 FINAL REMINDERS BEFORE YOU GENERATE:
 
-1. RULE #0: Every "question" field must be a STANDALONE question. ZERO references to "the text", "passage", "document", "PDF", "content", "above", "highlighted", "mentioned", "stated", "according to", "based on", "as per", etc. Write questions as if for a standalone exam paper.
+1. RULE #0: Every generated text field — "question", "explanation", "modelAnswer", and all "options" — must be a STANDALONE statement. ZERO references to "the text", "passage", "document", "PDF", "content", "transcript", "video", "above", "highlighted", "mentioned", "stated", "according to", "based on", "as per", etc. Write everything as if for a standalone exam paper where the student has never seen any source material.
 
 2. Every question's "type" field MUST be one of [${allowedTypes}] — NOTHING else.${language !== 'English' ? `
 
